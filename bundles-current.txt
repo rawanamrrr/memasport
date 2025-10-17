@@ -1,0 +1,323 @@
+      {/* Bundles */}
+      <section className="section-padding pb-12">
+        <div className="section-container">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="mb-12"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <h2 className="section-title">Bundles</h2>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "100%" }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    viewport={{ once: true }}
+                    className="h-0.5 bg-gradient-to-r from-purple-400 to-pink-500 mt-2 rounded-full"
+                  />
+                </div>
+                <div className="hidden sm:block text-sm text-white/70 font-light tracking-wide">
+                  Curated Collections
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={fetchProducts}
+                  variant="outline"
+                  size="sm"
+                  className="border-white/10 text-white hover:bg-white/10"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+                <Link href="/products/packages">
+                  <Button
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                  >
+                    View All
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Mobile Carousel */}
+            <div className="md:hidden">
+              <div className="overflow-hidden" ref={emblaRefPackages}>
+                <div className="flex">
+                  {categorizedProducts.packages.map((product, index) => (
+                    <div key={product._id} className="flex-[0_0_80%] min-w-0 pl-4 relative h-full">
+                      <div className="group relative h-full">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            await toggleFavorite(product)
+                          }}
+                          className="absolute top-4 right-4 z-10 p-2 bg-black/60 backdrop-blur rounded-full shadow-lg shadow-purple-500/20 hover:bg-black/80 transition-colors"
+                          aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
+                        >
+                          <Heart
+                            className={`h-5 w-5 ${
+                              isFavorite(product.id)
+                                ? "text-red-500 fill-red-500"
+                                : "text-white"
+                            }`}
+                          />
+                        </button>
+
+                        <div className="absolute top-4 left-4 z-10 space-y-2">
+                          {product.isBestseller && (
+                            <Badge className="bg-black/80 text-white border border-white/10">Bestseller</Badge>
+                          )}
+                          {product.isNew && !product.isBestseller && (
+                            <Badge variant="secondary">New</Badge>
+                          )}
+                        </div>
+
+                        <Card className="glass-panel border-0 shadow-lg hover:shadow-purple-500/30 transition-all duration-300 h-full mr-4">
+                          <CardContent className="p-0 h-full flex flex-col">
+                            <Link href={`/products/${product.category}/${product.id}`} className="block relative aspect-square flex-grow">
+                              <div className="relative w-full h-full group-hover:scale-105 transition-transform duration-500">
+                                <Image
+                                  src={product.images[0] || "/placeholder.svg"}
+                                  alt={product.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                                <div className="flex items-center mb-1">
+                                  <div className="flex items-center">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={`h-4 w-4 ${
+                                          i < Math.floor(product.rating)
+                                            ? "fill-yellow-400 text-yellow-400"
+                                            : "text-white/30"
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-xs ml-2">({product.rating.toFixed(1)})</span>
+                                </div>
+
+                                <h3 className="text-lg font-medium mb-1">{product.name}</h3>
+
+                                <div className="flex items-center justify-between">
+                                  <div className="text-left">
+                                    {(() => {
+                                      if (product.isGiftPackage) {
+                                        const packagePrice = product.packagePrice || 0
+                                        const packageOriginalPrice = product.packageOriginalPrice || 0
+
+                                        if (packageOriginalPrice > 0 && packagePrice < packageOriginalPrice) {
+                                          return (
+                                            <>
+                                              <span className="line-through text-white/50 text-sm block">EGP{packageOriginalPrice}</span>
+                                              <span className="text-lg font-light text-pink-300">EGP{packagePrice}</span>
+                                            </>
+                                          )
+                                        }
+
+                                        return <span className="text-lg font-light">EGP{packagePrice}</span>
+                                      }
+
+                                      const smallestOriginal = getSmallestOriginalPrice(product.sizes)
+                                      const smallestPrice = getSmallestPrice(product.sizes)
+
+                                      if (smallestOriginal > 0 && smallestPrice < smallestOriginal) {
+                                        return (
+                                          <>
+                                            <span className="line-through text-white/50 text-sm block">EGP{smallestOriginal}</span>
+                                            <span className="text-lg font-light text-pink-300">EGP{smallestPrice}</span>
+                                          </>
+                                        )
+                                      }
+
+                                      return <span className="text-lg font-light">EGP{smallestPrice}</span>
+                                    })()}
+                                  </div>
+
+                                  <button
+                                    className={`p-2 backdrop-blur-sm rounded-full transition-colors ${
+                                      product.isGiftPackage
+                                        ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/40 hover:to-pink-500/40"
+                                        : "bg-white/20 hover:bg-white/30"
+                                    }`}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      openSizeSelector(product)
+                                    }}
+                                    aria-label={product.isGiftPackage ? "Customize Package" : "Add to cart"}
+                                  >
+                                    {product.isGiftPackage ? (
+                                      <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+                                    ) : (
+                                      <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </Link>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-center mt-4 md:hidden">
+                {categorizedProducts.packages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => scrollToPackages(index)}
+                    className={`w-2 h-2 mx-1 rounded-full transition-colors ${
+                      index === selectedIndexPackages ? "bg-white" : "bg-white/30"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop Grid */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {categorizedProducts.packages.map((product, index) => (
+                <motion.div
+                  key={product._id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <div className="group relative h-full">
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        await toggleFavorite(product)
+                      }}
+                      className="absolute top-4 right-4 z-10 p-2 bg-black/60 backdrop-blur rounded-full shadow-lg shadow-purple-500/20 hover:bg-black/80 transition-colors"
+                      aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${
+                          isFavorite(product.id)
+                            ? "text-red-500 fill-red-500"
+                            : "text-white"
+                        }`}
+                      />
+                    </button>
+
+                    <div className="absolute top-4 left-4 z-10 space-y-2">
+                      {product.isBestseller && (
+                        <Badge className="bg-black/80 text-white border border-white/10">Bestseller</Badge>
+                      )}
+                      {product.isNew && !product.isBestseller && (
+                        <Badge variant="secondary">New</Badge>
+                      )}
+                    </div>
+
+                    <Card className="glass-panel border-0 shadow-lg hover:shadow-purple-500/30 transition-all duration-300 h-full">
+                      <CardContent className="p-0 h-full flex flex-col">
+                        <Link href={`/products/${product.category}/${product.id}`} className="block relative aspect-square flex-grow">
+                          <div className="relative w-full h-full group-hover:scale-105 transition-transform duration-500">
+                            <Image
+                              src={product.images[0] || "/placeholder.svg"}
+                              alt={product.name}
+                              fill
+                              className="object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                            <div className="flex items-center mb-1">
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${
+                                      i < Math.floor(product.rating)
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "text-white/30"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs ml-2">({product.rating.toFixed(1)})</span>
+                            </div>
+
+                            <h3 className="text-lg font-medium mb-1">{product.name}</h3>
+
+                            <div className="flex items-center justify-between">
+                              <div className="text-left">
+                                {(() => {
+                                  if (product.isGiftPackage) {
+                                    const packagePrice = product.packagePrice || 0
+                                    const packageOriginalPrice = product.packageOriginalPrice || 0
+
+                                    if (packageOriginalPrice > 0 && packagePrice < packageOriginalPrice) {
+                                      return (
+                                        <>
+                                          <span className="line-through text-white/50 text-sm block">EGP{packageOriginalPrice}</span>
+                                          <span className="text-lg font-light text-pink-300">EGP{packagePrice}</span>
+                                        </>
+                                      )
+                                    }
+
+                                    return <span className="text-lg font-light">EGP{packagePrice}</span>
+                                  }
+
+                                  const smallestOriginal = getSmallestOriginalPrice(product.sizes)
+                                  const smallestPrice = getSmallestPrice(product.sizes)
+
+                                  if (smallestOriginal > 0 && smallestPrice < smallestOriginal) {
+                                    return (
+                                      <>
+                                        <span className="line-through text-white/50 text-sm block">EGP{smallestOriginal}</span>
+                                        <span className="text-lg font-light text-pink-300">EGP{smallestPrice}</span>
+                                      </>
+                                    )
+                                  }
+
+                                  return <span className="text-lg font-light">EGP{smallestPrice}</span>
+                                })()}
+                              </div>
+
+                              <button
+                                className={`p-2 backdrop-blur-sm rounded-full transition-colors ${
+                                  product.isGiftPackage
+                                    ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/40 hover:to-pink-500/40"
+                                    : "bg-white/20 hover:bg-white/30"
+                                }`}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  openSizeSelector(product)
+                                }}
+                                aria-label={product.isGiftPackage ? "Customize Package" : "Add to cart"}
+                              >
+                                {product.isGiftPackage ? (
+                                  <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+                                ) : (
+                                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>

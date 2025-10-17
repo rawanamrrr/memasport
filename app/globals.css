@@ -1,0 +1,642 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 9%; /* Dark background */
+    --foreground: 0 0% 98%; /* White text */
+    --card: 0 0% 15%; /* Dark card */
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 25 95% 53%; /* Orange-500 */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 20%; /* Dark secondary */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 25 95% 53%; /* Orange-500 */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 25%; /* Dark border */
+    --input: 0 0% 25%;
+    --ring: 25 95% 53%; /* Orange-500 */
+    --chart-1: 25 95% 53%; /* Orange-500 */
+    --chart-2: 0 0% 9%; /* Black */
+    --chart-3: 25 85% 43%; /* Orange-700 */
+    --chart-4: 25 75% 63%; /* Orange-400 */
+    --chart-5: 0 0% 20%; /* Dark gray */
+    --radius: 0.75rem; /* More rounded */
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 25 95% 53%; /* Orange-500 */
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 20%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 25%;
+    --sidebar-ring: 25 95% 53%; /* Orange-500 */
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white;
+  }
+
+  .section-container {
+    @apply container mx-auto px-6;
+  }
+
+  .section-padding {
+    @apply py-24 md:py-32;
+  }
+
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-xl;
+  }
+
+  .hero-heading {
+    @apply text-4xl md:text-6xl font-black leading-tight tracking-tight;
+  }
+
+  .hero-subheading {
+    @apply text-lg md:text-xl text-gray-300 leading-relaxed;
+  }
+
+  .section-pill {
+    @apply inline-flex items-center px-4 py-2 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-300 text-xs font-semibold uppercase tracking-widest;
+  }
+
+  .section-title {
+    @apply text-4xl md:text-5xl font-extrabold text-white leading-tight;
+  }
+
+  .section-subtitle {
+    @apply text-lg md:text-xl text-gray-300 leading-relaxed;
+  }
+
+  .muted-text {
+    @apply text-gray-300;
+  }
+
+  .accent-gradient-text {
+    @apply bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent;
+  }
+
+  .page-shell .bg-white {
+    @apply bg-white/10;
+  }
+
+  .page-shell .bg-gray-50,
+  .page-shell .bg-gray-100,
+  .page-shell .bg-gray-200 {
+    @apply bg-white/5;
+  }
+
+  .page-shell .text-gray-600,
+  .page-shell .text-gray-500,
+  .page-shell .text-gray-400,
+  .page-shell .text-gray-300 {
+    color: rgb(209 213 219 / 1);
+  }
+
+  .page-shell .border-gray-200,
+  .page-shell .border-gray-100,
+  .page-shell .border-gray-300 {
+    @apply border-white/10;
+  }
+
+  .page-shell .shadow-lg,
+  .page-shell .shadow-xl {
+    @apply shadow-orange-500/10;
+  }
+}
+.font-serif {
+  font-family: var(--font-playfair-display), var(--font-crimson-text), "Playfair Display", "Crimson Text", "Bodoni Moda", "Bodoni MT", Didot, "Didot LT STD",
+    "Hoefler Text", Garamond, "Times New Roman", serif !important;
+  font-display: swap;
+}
+
+/* Ensure the logo text uses the serif font */
+.navigation-logo-text {
+  font-family: var(--font-playfair-display), var(--font-crimson-text), "Playfair Display", "Crimson Text", "Bodoni Moda", "Bodoni MT", Didot, "Didot LT STD",
+    "Hoefler Text", Garamond, "Times New Roman", serif !important;
+  font-display: swap;
+}
+
+/* Video Background Styles */
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Ensure video works on all devices */
+@media (max-width: 768px) {
+  .video-container {
+    aspect-ratio: 16/9;
+  }
+  
+  .video-container video {
+    min-height: 200px;
+  }
+}
+
+/* Comprehensive video control hiding */
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-timeline {
+  display: none !important;
+}
+
+video::-webkit-media-controls-current-time-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-time-remaining-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-volume-slider {
+  display: none !important;
+}
+
+video::-webkit-media-controls-mute-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-overlay-enclosure {
+  display: none !important;
+}
+
+/* Additional mobile-specific hiding */
+video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+/* Force hide all video controls */
+video {
+  pointer-events: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Hide video controls on all browsers */
+video::-webkit-media-controls,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-timeline,
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display,
+video::-webkit-media-controls-fullscreen-button,
+video::-webkit-media-controls-volume-slider,
+video::-webkit-media-controls-mute-button,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-overlay-enclosure,
+video::-webkit-media-controls-enclosure {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Video loading animation */
+.video-loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Video fallback styles */
+.video-fallback {
+  background: linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #f97316 100%);
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+
+/* Video description overlay */
+.video-description {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  padding: 1.5rem;
+  color: white;
+}
+
+/* Ensure video accessibility */
+.video-container:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .video-container {
+    border: 2px solid #000;
+  }
+  
+
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .video-loading {
+    animation: none;
+  }
+  
+
+}
+
+/* Logo rotation animation */
+@keyframes spin-slow {
+  0% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 10s linear infinite;
+}
+
+/* Respect reduced motion preference for logo */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-slow {
+    animation: none;
+  }
+}
+
+/* Modern animations for Mema Sports */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.6), 0 0 60px rgba(249, 115, 22, 0.3);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.6);
+  }
+}
+
+@keyframes slide-in-left {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background: linear-gradient(-45deg, #f97316, #ea580c, #c2410c, #f97316);
+  background-size: 400% 400%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.8s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.8s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.6s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Luxury sports gradient backgrounds */
+.bg-sports-gradient {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%);
+}
+
+.bg-sports-gradient-dark {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 50%, #000000 100%);
+}
+
+.bg-sports-gradient-light {
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 50%, #fdba74 100%);
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.hover-glow {
+  transition: all 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.4);
+}
+
+/* Modern dark card styling */
+.modern-card {
+  background: linear-gradient(145deg, #1f2937 0%, #111827 100%);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 60px rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+/* Glass morphism effect */
+.glass-card {
+  background: rgba(31, 41, 55, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Neon glow effect */
+.neon-glow {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+
+.neon-glow:hover {
+  box-shadow: 0 0 40px rgba(249, 115, 22, 0.6), 0 0 80px rgba(249, 115, 22, 0.3);
+}
+
+/* Sports equipment specific styles */
+.equipment-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.equipment-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.equipment-card:hover::before {
+  left: 100%;
+}
+
+/* Performance indicators */
+.performance-indicator {
+  position: relative;
+  overflow: hidden;
+}
+
+.performance-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #f97316, #ea580c, #c2410c);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s ease;
+}
+
+.performance-indicator:hover::after {
+  transform: scaleX(1);
+}
+
+/* Responsive animations */
+@media (max-width: 768px) {
+  .animate-float {
+    animation: none;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-shimmer {
+    animation: none;
+  }
+  
+  .hover-lift:hover {
+    transform: none;
+  }
+}
