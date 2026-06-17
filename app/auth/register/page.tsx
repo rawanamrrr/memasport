@@ -86,8 +86,8 @@ export default function RegisterPage() {
               transition={{ duration: 0.8, delay: 0.1 }}
               className="text-center mb-8"
             >
-              <Image src="/logo-black.png" alt="Sense Fragrances" width={200} height={100} className="mx-auto mb-6" />
-              <h1 className="text-3xl font-light tracking-wider mb-2">Join Sense</h1>
+              <Image src="/mema-logo.png" alt="MEMA Sports" width={200} height={100} className="mx-auto mb-6" />
+              <h1 className="text-3xl font-light tracking-wider mb-2">Join MEMA Sports</h1>
               <p className="text-gray-600">Create your account</p>
             </motion.div>
 

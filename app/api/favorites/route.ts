@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDatabase } from "@/lib/mongodb";
+import pool from "@/lib/postgresql";
 import jwt from "jsonwebtoken";
-import { ObjectId } from "mongodb";
 
 function errorResponse(message: string, status: number = 400) {
   console.error(`API Error [${status}]:`, message);
@@ -55,76 +54,58 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const db = await getDatabase();
-    console.log("Fetching user from database with ID:", decoded.userId);
+    console.log("Fetching favorites from database for user:", decoded.userId);
 
-    const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(decoded.userId) 
-    });
-    
-    if (!user) {
-      console.log("User not found in database");
-      return errorResponse("User not found", 404);
-    }
+    // Get all favorites for this user with product details
+    const result = await pool.query(`
+      SELECT f.*, p.name, p.description, p.images, p.category, p.rating, p.reviews,
+             p.is_new, p.is_bestseller, p.is_gift_package, p.package_price, p.package_original_price,
+             COALESCE(
+               json_agg(
+                 json_build_object(
+                   'size', ps.size,
+                   'volume', ps.volume,
+                   'originalPrice', ps.original_price,
+                   'discountedPrice', ps.discounted_price
+                 )
+               ) FILTER (WHERE ps.id IS NOT NULL),
+               '[]'::json
+             ) as sizes
+      FROM favorites f
+      LEFT JOIN products p ON f.product_id = p.id
+      LEFT JOIN product_sizes ps ON p.id = ps.product_id
+      WHERE f.user_id = $1
+      GROUP BY f.id, f.product_id, f.product_name, f.price, f.image, f.category, f.rating,
+               f.is_new, f.is_bestseller, f.is_gift_package, f.package_price, f.package_original_price,
+               f.created_at, p.name, p.description, p.images, p.category, p.rating, p.reviews,
+               p.is_new, p.is_bestseller, p.is_gift_package, p.package_price, p.package_original_price
+      ORDER BY f.created_at DESC
+    `, [decoded.userId]);
 
-    const favorites: string[] = user.favorites || [];
-    console.log(`Found ${favorites.length} favorites for user`);
+    console.log(`Found ${result.rows.length} favorites for user`);
 
-    if (!favorites.length) {
+    if (result.rows.length === 0) {
       console.log("No favorites found - returning empty array");
       return NextResponse.json([]);
     }
 
-    // Fetch product details
-    console.log("Fetching favorite products from database...");
-    const products = await db.collection("products").find(
-      { id: { $in: favorites } },
-      {
-        projection: {
-          id: 1,
-          name: 1,
-          sizes: 1,
-          images: 1,
-          category: 1,
-          description: 1,
-          rating: 1,
-          isNew: 1,
-          isBestseller: 1,
-          isGiftPackage: 1,
-          packagePrice: 1,
-          packageOriginalPrice: 1,
-          giftPackageSizes: 1,
-        },
-      }
-    ).toArray();
-
-    console.log(`Found ${products.length} products matching favorites`);
-    console.log("Sample product sizes:", products[0]?.sizes);
-
-    // Transform products to match the expected format
-    const transformedProducts = products.map(product => ({
-      id: product.id,
-      name: product.name,
-      price: product.isGiftPackage ? (product.packagePrice || 0) : getSmallestPrice(product.sizes || []),
-      image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg",
-      category: product.category,
-      ...(product.rating !== undefined ? { rating: product.rating } : {}),
-      isNew: product.isNew || false,
-      isBestseller: product.isBestseller || false,
-      sizes: product.isGiftPackage ? [] : transformSizes(product.sizes || []),
-      // Gift package fields
-      isGiftPackage: product.isGiftPackage || false,
-      packagePrice: product.packagePrice || 0,
-      packageOriginalPrice: product.packageOriginalPrice || 0,
-      giftPackageSizes: product.giftPackageSizes || [],
+    // Transform to match expected format
+    const transformedProducts = result.rows.map(row => ({
+      id: row.product_id,
+      name: row.name || row.product_name,
+      price: row.is_gift_package ? (row.package_price || 0) : (row.price || getSmallestPrice(row.sizes || [])),
+      image: (row.images && row.images.length > 0) ? row.images[0] : (row.image || "/placeholder.svg"),
+      category: row.category,
+      rating: parseFloat(row.rating) || 0,
+      isNew: row.is_new || false,
+      isBestseller: row.is_bestseller || false,
+      sizes: row.is_gift_package ? [] : transformSizes(row.sizes || []),
+      isGiftPackage: row.is_gift_package || false,
+      packagePrice: row.package_price ? parseFloat(row.package_price) : 0,
+      packageOriginalPrice: row.package_original_price ? parseFloat(row.package_original_price) : 0,
     }));
 
-    // Maintain order
-    const productMap = Object.fromEntries(transformedProducts.map((p) => [p.id, p]));
-    const ordered = favorites.map((id) => productMap[id]).filter(Boolean);
-
-    console.log("Transformed sizes for first product:", ordered[0]?.sizes);
-    return NextResponse.json(ordered);
+    return NextResponse.json(transformedProducts);
   } catch (err) {
     console.error("Database error:", err);
     return errorResponse("Internal server error", 500);
@@ -150,30 +131,37 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { productId } = await request.json();
+    const body = await request.json();
+    const { productId, name, price, image, category, rating, isNew, isBestseller, isGiftPackage, packagePrice, packageOriginalPrice, sizes } = body;
+    
     if (!productId) {
       return errorResponse("productId required", 400);
     }
 
-    const db = await getDatabase();
-    const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(decoded.userId) 
-    });
-    
-    if (!user) {
-      return errorResponse("User not found", 404);
+    // Check if already in favorites
+    const existing = await pool.query(
+      'SELECT id FROM favorites WHERE user_id = $1 AND product_id = $2',
+      [decoded.userId, productId]
+    );
+
+    if (existing.rows.length > 0) {
+      console.log(`Product ${productId} already in favorites`);
+      return NextResponse.json({ success: true });
     }
 
-    const favorites: string[] = user.favorites || [];
-    if (!favorites.includes(productId)) {
-      const newFavorites = [...favorites, productId];
-      await db.collection("users").updateOne(
-        { _id: new ObjectId(decoded.userId) },
-        { $set: { favorites: newFavorites } }
-      );
-      console.log(`Added product ${productId} to favorites`);
-    }
+    // Add to favorites
+    await pool.query(`
+      INSERT INTO favorites (
+        user_id, product_id, product_name, price, image, category, rating,
+        is_new, is_bestseller, is_gift_package, package_price, package_original_price, sizes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    `, [
+      decoded.userId, productId, name, price, image, category, rating || 0,
+      isNew || false, isBestseller || false, isGiftPackage || false,
+      packagePrice || null, packageOriginalPrice || null, JSON.stringify(sizes || [])
+    ]);
 
+    console.log(`Added product ${productId} to favorites`);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Error in POST favorites:", err);
@@ -205,21 +193,9 @@ export async function DELETE(request: NextRequest) {
       return errorResponse("productId required", 400);
     }
 
-    const db = await getDatabase();
-    const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(decoded.userId) 
-    });
-    
-    if (!user) {
-      return errorResponse("User not found", 404);
-    }
-
-    const favorites: string[] = user.favorites || [];
-    const newFavorites = favorites.filter((id) => id !== productId);
-
-    await db.collection("users").updateOne(
-      { _id: new ObjectId(decoded.userId) },
-      { $set: { favorites: newFavorites } }
+    await pool.query(
+      'DELETE FROM favorites WHERE user_id = $1 AND product_id = $2',
+      [decoded.userId, productId]
     );
     
     console.log(`Removed product ${productId} from favorites`);

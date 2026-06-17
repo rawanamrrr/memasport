@@ -51,7 +51,7 @@ interface Product {
   images: string[]
   rating: number
   reviews: number
-  category: "men" | "women" | "packages"
+  category: "equipment" | "apparel" | "accessories" | "outlet"
   isActive: boolean
   isNew: boolean
   isBestseller: boolean
@@ -458,6 +458,7 @@ export default function AdminDashboard() {
       const token = getAuthToken();
       
       const discountData: any = {
+        id: editingDiscount._id,
         code: discountForm.code.toUpperCase(),
         type: discountForm.type,
         value: Number.parseFloat(discountForm.value),
@@ -472,7 +473,7 @@ export default function AdminDashboard() {
         discountData.getX = Number.parseInt(discountForm.getX)
       }
 
-      const response = await fetch(`/api/discount-codes?id=${editingDiscount._id}`, {
+      const response = await fetch(`/api/discount-codes`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -602,13 +603,14 @@ export default function AdminDashboard() {
 
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/offers?id=${editingOffer._id}`, {
+      const response = await fetch(`/api/offers`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          id: editingOffer._id,
           title: offerForm.title ? offerForm.title.trim() : null,
           description: offerForm.description,
           discountCode: offerForm.discountCode || undefined,
@@ -1503,7 +1505,7 @@ export default function AdminDashboard() {
                         </div>
                       ) : (
                         <div className="space-y-4 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
-                          {discountCodes.map((code) => (
+                          {discountCodes.filter(code => code && code.code).map((code) => (
                             <div key={code._id} className="p-3 sm:p-4 border rounded-lg">
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
                                 <span className="font-mono font-medium text-sm sm:text-base">{code.code}</span>

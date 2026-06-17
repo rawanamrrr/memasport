@@ -33,16 +33,19 @@ export function OffersBanner() {
 
       if (response.ok) {
         const data = await response.json()
+        console.log("📢 [OffersBanner] Fetched offers:", data)
         const activeOffers = data
           .filter((offer: Offer) => offer.isActive)
           .sort((a: Offer, b: Offer) => b.priority - a.priority)
 
+        console.log("📢 [OffersBanner] Active offers:", activeOffers)
         setOffers(activeOffers)
       } else {
+        console.warn("📢 [OffersBanner] Failed to fetch offers:", response.status)
         setOffers([])
       }
     } catch (err) {
-      console.error("Error fetching offers:", err)
+      console.error("📢 [OffersBanner] Error fetching offers:", err)
       setOffers([])
       setError(true)
     } finally {
@@ -59,6 +62,15 @@ export function OffersBanner() {
     const refreshInterval = setInterval(fetchOffers, 5 * 60 * 1000)
     return () => clearInterval(refreshInterval)
   }, [fetchOffers])
+
+  // Set CSS variable for banner height
+  useEffect(() => {
+    if (!loading && isVisible && offers.length > 0) {
+      document.documentElement.style.setProperty('--offers-banner-height', '40px')
+    } else {
+      document.documentElement.style.setProperty('--offers-banner-height', '0px')
+    }
+  }, [loading, isVisible, offers.length])
 
   useEffect(() => {
     if (offers.length <= 1) return
@@ -162,9 +174,13 @@ export function OffersBanner() {
       const closedTimestamp = localStorage.getItem("offers_banner_closed")
       if (closedTimestamp) {
         const closedTime = parseInt(closedTimestamp)
-        if (Date.now() - closedTime < 24 * 60 * 60 * 1000) {
+        const timeSinceClosed = Date.now() - closedTime
+        console.log("📢 [OffersBanner] Banner was closed", timeSinceClosed / 1000 / 60, "minutes ago")
+        if (timeSinceClosed < 24 * 60 * 60 * 1000) {
+          console.log("📢 [OffersBanner] Hiding banner (closed within 24h)")
           setIsVisible(false)
         } else {
+          console.log("📢 [OffersBanner] Clearing old close timestamp")
           localStorage.removeItem("offers_banner_closed")
         }
       }
@@ -175,20 +191,25 @@ export function OffersBanner() {
 
   // Error boundary - if there's an error, don't render the component
   if (error) {
+    console.log("📢 [OffersBanner] Not rendering: error occurred")
     return null
   }
 
   if (loading || !isVisible || offers.length === 0) {
+    console.log("📢 [OffersBanner] Not rendering:", { loading, isVisible, offersCount: offers.length })
     return null
   }
 
   const currentOffer = offers[currentOfferIndex]
   if (!currentOffer) {
+    console.log("📢 [OffersBanner] Not rendering: no current offer")
     return null
   }
 
+  console.log("📢 [OffersBanner] Rendering banner with offer:", currentOffer.title)
+
   return (
-    <div className="relative w-full h-12">
+    <div className="fixed top-0 left-0 right-0 w-full h-10 z-50">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -210,8 +231,8 @@ export function OffersBanner() {
           }
         }}
       >
-        {/* Black background */}
-        <div className="absolute inset-0 bg-black" />
+        {/* Background matching website theme */}
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-orange-600/5 to-orange-500/10 border-b border-orange-500/20 backdrop-blur-xl" />
         
 
 
@@ -229,7 +250,7 @@ export function OffersBanner() {
                       prevOffer()
                     }
                   }}
-                  className="absolute left-0 p-1 text-purple-300 hover:text-white transition-all duration-200 h-full flex items-center"
+                  className="absolute left-0 p-1 text-orange-300 hover:text-white transition-all duration-200 h-full flex items-center"
                   aria-label="Previous offer"
                 >
                   <ChevronLeft className="h-3 w-3" strokeWidth={2.5} />
@@ -244,7 +265,7 @@ export function OffersBanner() {
                       nextOffer()
                     }
                   }}
-                  className="absolute right-0 p-1 text-purple-300 hover:text-white transition-all duration-200 h-full flex items-center"
+                  className="absolute right-0 p-1 text-orange-300 hover:text-white transition-all duration-200 h-full flex items-center"
                   aria-label="Next offer"
                 >
                   <ChevronRight className="h-3 w-3" strokeWidth={2.5} />
@@ -269,12 +290,12 @@ export function OffersBanner() {
                       !currentOffer.discountCode ? "text-center" : ""
                     }`}
                   >
-                    <Tag className="h-4 w-4 text-purple-300 flex-shrink-0" strokeWidth={2} />
+                    <Tag className="h-4 w-4 text-orange-400 flex-shrink-0" strokeWidth={2} />
                     <div className="flex flex-col justify-center min-w-0 flex-1">
-                      <span className="font-bold text-[10px] uppercase tracking-[0.15em] text-purple-200 leading-tight truncate">
+                      <span className="font-bold text-[10px] uppercase tracking-[0.15em] text-orange-300 leading-tight truncate">
                         {currentOffer.title}
                       </span>
-                      <p className="text-white text-xs font-medium leading-tight truncate">
+                      <p className="text-white text-xs font-semibold leading-tight truncate">
                         {currentOffer.description}
                       </p>
                     </div>
@@ -294,13 +315,13 @@ export function OffersBanner() {
                             copyCode()
                           }
                         }}
-                        className="group relative bg-gradient-to-r from-purple-200 to-pink-200 text-purple-900 px-2 py-0.5 rounded-md font-bold tracking-wider cursor-pointer transition-all duration-200 flex items-center gap-1 shadow-md hover:shadow-lg"
+                        className="group relative bg-gradient-to-r from-orange-400 to-orange-500 text-white px-2 py-0.5 rounded-md font-bold tracking-wider cursor-pointer transition-all duration-200 flex items-center gap-1 shadow-md hover:shadow-lg hover:from-orange-500 hover:to-orange-600"
                       >
                         <span className="font-mono tracking-tighter text-[10px]">
                           {currentOffer.discountCode}
                         </span>
                         {copied ? (
-                          <Check className="h-3 w-3 text-purple-700" />
+                          <Check className="h-3 w-3 text-white" />
                         ) : (
                           <Copy className="h-3 w-3 opacity-80 group-hover:opacity-100 transition-opacity" />
                         )}
@@ -310,7 +331,7 @@ export function OffersBanner() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 5 }}
-                          className="text-[9px] text-purple-200 font-medium"
+                          className="text-[9px] text-orange-300 font-medium"
                         >
                           Copied!
                         </motion.span>
@@ -331,7 +352,7 @@ export function OffersBanner() {
                   handleClose()
                 }
               }}
-              className="absolute right-0 p-1 text-purple-300 hover:text-white transition-all duration-200 h-full flex items-center"
+              className="absolute right-0 p-1 text-orange-300 hover:text-white transition-all duration-200 h-full flex items-center"
               aria-label="Close banner"
             >
               <X className="h-3 w-3" strokeWidth={2.5} />
@@ -340,9 +361,9 @@ export function OffersBanner() {
         </div>
 
         {offers.length > 1 && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-900">
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-900/30">
             <motion.div
-              className="h-full bg-gradient-to-r from-purple-400 to-pink-400"
+              className="h-full bg-gradient-to-r from-orange-400 to-orange-500"
               initial={{ width: "0%" }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.1 }}

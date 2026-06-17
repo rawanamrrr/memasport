@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
 import type { User } from "@/lib/models/types"
 
 export async function POST(request: NextRequest) {
@@ -16,11 +16,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters long" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-
     // Check if user already exists
-    const existingUser = await db.collection<User>("users").findOne({ email })
-    if (existingUser) {
+    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email])
+    if (existingUser.rows.length > 0) {
       return NextResponse.json({ error: "User already exists" }, { status: 409 })
     }
 
@@ -28,26 +26,26 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12)
 
     // Create user
-    const newUser: Omit<User, "_id"> = {
-      email,
-      password: hashedPassword,
-      name,
-      role: "user",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+    const result = await pool.query(
+      `INSERT INTO users (email, password, name, role, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       RETURNING id, email, name, role`,
+      [email, hashedPassword, name, 'user']
+    )
 
-    const result = await db.collection<User>("users").insertOne(newUser)
+    const newUser = result.rows[0]
 
-    const token = jwt.sign({ userId: result.insertedId, email, role: "user" }, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
-    })
+    const token = jwt.sign(
+      { userId: newUser.id, email: newUser.email, role: newUser.role }, 
+      process.env.JWT_SECRET!, 
+      { expiresIn: "7d" }
+    )
 
     const userData = {
-      id: result.insertedId.toString(),
-      email,
-      name,
-      role: "user" as const,
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role as const,
     }
 
     return NextResponse.json({

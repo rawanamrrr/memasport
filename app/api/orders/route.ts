@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
 import type { Order } from "@/lib/models/types"
 
 export async function GET(request: NextRequest) {
@@ -25,31 +25,67 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const db = await getDatabase()
-    console.log("✅ [API] Database connection established")
-
-    const query: any = {}
-
+    let query = `
+      SELECT o.*, 
+             json_agg(
+               json_build_object(
+                 'id', oi.id,
+                 'productId', oi.product_id,
+                 'productName', oi.product_name,
+                 'size', oi.size,
+                 'volume', oi.volume,
+                 'price', oi.price,
+                 'originalPrice', oi.original_price,
+                 'quantity', oi.quantity,
+                 'image', oi.image,
+                 'category', oi.category
+               ) ORDER BY oi.id
+             ) as items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+    `
+    
+    const params: any[] = []
+    
     // If user role, only show their orders
     if (decoded.role === "user") {
-      query.userId = decoded.userId
+      query += ` WHERE o.user_id = $1`
+      params.push(decoded.userId)
       console.log("👤 [API] Filtering orders for user:", decoded.userId)
     } else {
       console.log("👑 [API] Admin access - fetching all orders")
     }
 
-    console.log("🔍 [API] MongoDB query:", JSON.stringify(query))
+    query += ` GROUP BY o.id ORDER BY o.created_at DESC`
 
-    const orders = await db.collection<Order>("orders").find(query).sort({ createdAt: -1 }).toArray()
+    const result = await pool.query(query, params)
 
-    console.log(`✅ [API] Found ${orders.length} orders`)
+    console.log(`✅ [API] Found ${result.rows.length} orders`)
 
-    if (orders.length > 0) {
-      console.log("📦 [API] Sample orders:")
-      orders.slice(0, 2).forEach((order, index) => {
-        console.log(`   ${index + 1}. Order ${order.id} - ${order.total} EGP (${order.status})`)
-      })
-    }
+    // Transform to match expected format
+    const orders = result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      orderNumber: row.order_number,
+      customerName: row.customer_name,
+      customerEmail: row.customer_email,
+      customerPhone: row.customer_phone,
+      shippingAddress: row.shipping_address,
+      city: row.city,
+      governorate: row.governorate,
+      postalCode: row.postal_code,
+      subtotal: parseFloat(row.subtotal),
+      shippingCost: parseFloat(row.shipping_cost),
+      discount: parseFloat(row.discount),
+      discountCode: row.discount_code,
+      total: parseFloat(row.total),
+      status: row.status,
+      paymentMethod: row.payment_method,
+      notes: row.notes,
+      items: row.items || [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }))
 
     const responseTime = Date.now() - startTime
     console.log(`⏱️ [API] Request completed in ${responseTime}ms`)
@@ -90,21 +126,8 @@ export async function POST(request: NextRequest) {
     console.log("   Total:", orderData.total)
     console.log("   Payment method:", orderData.paymentMethod)
     console.log("   Customer:", orderData.shippingAddress?.name)
-    
-    // Debug gift package items
-    if (orderData.items) {
-      orderData.items.forEach((item: any, index: number) => {
-        if (item.isGiftPackage) {
-          console.log(`   🎁 [API] Gift Package Item ${index + 1}:`)
-          console.log(`      Name: ${item.name}`)
-          console.log(`      isGiftPackage: ${item.isGiftPackage}`)
-          console.log(`      packageDetails:`, item.packageDetails)
-          console.log(`      selectedProducts:`, item.selectedProducts)
-        }
-      })
-    }
 
-    let userId = "guest"
+    let userId = null
 
     if (token) {
       try {
@@ -118,108 +141,95 @@ export async function POST(request: NextRequest) {
       console.log("👤 [API] Guest order (no token provided)")
     }
 
-    const db = await getDatabase()
     console.log("✅ [API] Database connection established")
 
-    // Generate unique order ID
-    const orderId = `order-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    console.log("🆔 [API] Generated order ID:", orderId)
+    // Generate unique order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+    console.log("🆔 [API] Generated order number:", orderNumber)
 
-    // Prepare order document
-    const newOrder: Omit<Order, "_id"> = {
-      id: orderId,
-      userId: userId,
-      items: orderData.items.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: Number(item.price),
-        size: item.size,
-        volume: item.volume,
-        image: item.image,
-        category: item.category,
-        quantity: Number(item.quantity),
-        // Preserve gift package details
-        isGiftPackage: item.isGiftPackage || false,
-        selectedProducts: item.selectedProducts || undefined,
-        packageDetails: item.packageDetails || undefined,
-      })),
-      total: Number(orderData.total),
-      status: "pending",
-      shippingAddress: {
-        name: orderData.shippingAddress.name,
-        email: orderData.shippingAddress.email || "",
-        phone: orderData.shippingAddress.phone || "",
-        secondaryPhone: orderData.shippingAddress.secondaryPhone,
-        address: orderData.shippingAddress.address,
-        city: orderData.shippingAddress.city,
-        governorate: orderData.shippingAddress.governorate || "",
-        postalCode: orderData.shippingAddress.postalCode || "",
-      },
-      paymentMethod: orderData.paymentMethod || "cod",
-      paymentDetails: orderData.paymentDetails || null,
-      discountCode: orderData.discountCode || null,
-      discountAmount: orderData.discountAmount || 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-
-    console.log("💾 [API] Inserting order into database...")
-    console.log("📄 [API] Order document summary:")
-    console.log("   Order ID:", newOrder.id)
-    console.log("   User ID:", newOrder.userId)
-    console.log("   Items:", newOrder.items.length)
-    console.log("   Total:", newOrder.total)
-    console.log("   Status:", newOrder.status)
-    console.log("   Discount:", newOrder.discountCode, newOrder.discountAmount)
+    const client = await pool.connect()
     
-    // Debug gift package items being saved
-    newOrder.items.forEach((item: any, index: number) => {
-      if (item.isGiftPackage) {
-        console.log(`   🎁 [API] Saving Gift Package Item ${index + 1}:`)
-        console.log(`      Name: ${item.name}`)
-        console.log(`      isGiftPackage: ${item.isGiftPackage}`)
-        console.log(`      packageDetails:`, item.packageDetails)
-        console.log(`      selectedProducts:`, item.selectedProducts)
+    try {
+      await client.query('BEGIN')
+
+      // Insert order
+      const orderResult = await client.query(`
+        INSERT INTO orders (
+          user_id, order_number, customer_name, customer_email, customer_phone,
+          shipping_address, city, governorate, postal_code,
+          subtotal, shipping_cost, discount, discount_code, total,
+          status, payment_method, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        RETURNING id
+      `, [
+        userId,
+        orderNumber,
+        orderData.shippingAddress.name,
+        orderData.shippingAddress.email || '',
+        orderData.shippingAddress.phone || '',
+        orderData.shippingAddress.address,
+        orderData.shippingAddress.city,
+        orderData.shippingAddress.governorate || '',
+        orderData.shippingAddress.postalCode || '',
+        orderData.subtotal || orderData.total,
+        orderData.shippingCost || 0,
+        orderData.discountAmount || 0,
+        orderData.discountCode || null,
+        orderData.total,
+        'pending',
+        orderData.paymentMethod || 'cod',
+        orderData.notes || null
+      ])
+
+      const orderId = orderResult.rows[0].id
+      console.log("✅ [API] Order inserted with ID:", orderId)
+
+      // Insert order items
+      for (const item of orderData.items) {
+        await client.query(`
+          INSERT INTO order_items (
+            order_id, product_id, product_name, size, volume,
+            price, original_price, quantity, image, category
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `, [
+          orderId,
+          item.id,
+          item.name,
+          item.size || null,
+          item.volume || null,
+          item.price,
+          item.originalPrice || item.price,
+          item.quantity,
+          item.image || null,
+          item.category || null
+        ])
       }
-    })
 
-    const result = await db.collection<Order>("orders").insertOne(newOrder)
-    console.log("✅ [API] Order inserted with MongoDB ID:", result.insertedId)
+      await client.query('COMMIT')
 
-    // Verify insertion
-    const insertedOrder = await db.collection<Order>("orders").findOne({ _id: result.insertedId })
-    console.log("🔍 [API] Verification - Order found in database:", !!insertedOrder)
+      console.log("✅ [API] Order and items saved successfully")
 
-    if (insertedOrder) {
-      console.log("✅ [API] Order verification successful:")
-      console.log("   Database ID:", insertedOrder._id)
-      console.log("   Order ID:", insertedOrder.id)
-      console.log("   Customer:", insertedOrder.shippingAddress.name)
-      console.log("   Total:", insertedOrder.total)
-      console.log("   Status:", insertedOrder.status)
+      const responseTime = Date.now() - startTime
+      console.log(`⏱️ [API] Order creation completed in ${responseTime}ms`)
+
+      return NextResponse.json({
+        success: true,
+        order: {
+          id: orderId,
+          orderNumber,
+          status: 'pending',
+          total: orderData.total,
+        },
+        message: "Order created successfully",
+      })
+
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
     }
 
-    // Check total orders after insertion
-    const totalOrders = await db.collection("orders").countDocuments()
-    const userOrders = userId !== "guest" ? await db.collection("orders").countDocuments({ userId }) : 0
-
-    console.log("📊 [API] Database stats after insertion:")
-    console.log("   Total orders:", totalOrders)
-    if (userId !== "guest") {
-      console.log("   User orders:", userOrders)
-    }
-
-    const responseTime = Date.now() - startTime
-    console.log(`⏱️ [API] Order creation completed in ${responseTime}ms`)
-
-    return NextResponse.json({
-      success: true,
-      order: {
-        _id: result.insertedId,
-        ...newOrder,
-      },
-      message: "Order created successfully",
-    })
   } catch (error) {
     const responseTime = Date.now() - startTime
     console.error("❌ [API] Error in POST /api/orders:", error)

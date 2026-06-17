@@ -30,7 +30,7 @@ interface Product {
   images: string[]
   rating: number
   reviews: number
-  category: "men" | "women" | "packages" | "outlet"
+  category: "equipment" | "apparel" | "accessories" | "outlet"
   isNew?: boolean
   isBestseller?: boolean
   sizes: ProductSize[]
@@ -42,17 +42,17 @@ interface Product {
 }
 
 const categoryTitles = {
-  men: "For Him",
-  women: "For Her",
-  packages: "Bundles",
-  outlet: "Outlet Collection",
+  equipment: "Equipment",
+  apparel: "Apparel",
+  accessories: "Accessories",
+  outlet: "Outlet",
 }
 
 const categoryDescriptions = {
-  men: "Discover our bold and sophisticated fragrances crafted for the modern gentleman.",
-  women: "Explore our elegant and captivating scents designed for the refined woman.",
-  packages: "Browse our curated collections perfect for any special occasion.",
-  outlet: "Find special deals and discounted fragrances in our outlet collection.",
+  equipment: "Professional-grade sports equipment designed for serious athletes and training excellence.",
+  apparel: "High-performance athletic wear combining style, comfort, and cutting-edge technology.",
+  accessories: "Essential training accessories to enhance your performance and complete your gear.",
+  outlet: "Special deals and discounts on premium sports equipment and apparel.",
 }
 
 export default function CategoryPage() {
@@ -210,11 +210,11 @@ export default function CategoryPage() {
 
   if (!categoryTitles[category as keyof typeof categoryTitles]) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-black">
         <Navigation />
               <div className="pt-28 md:pt-24 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-medium mb-4">Category not found</h1>
+          <h1 className="text-2xl font-medium mb-4 text-white">Category not found</h1>
           <Link href="/products">
             <Button className="bg-black text-white hover:bg-gray-800">
               Back to Collections
@@ -228,12 +228,12 @@ export default function CategoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-black">
         <Navigation />
         <div className="pt-28 md:pt-24 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading products...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-300">Loading products...</p>
           </div>
         </div>
       </div>
@@ -241,7 +241,7 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black">
       <Navigation />
 
       {/* Enhanced Size Selector Modal */}
@@ -434,8 +434,9 @@ export default function CategoryPage() {
       )}
 
       {/* Hero Section */}
-      <section className="pt-28 md:pt-24 pb-16 bg-gradient-to-b from-gray-50 to-white">
-        <div className="container mx-auto px-6">
+      <section className="pt-28 md:pt-24 pb-16 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 via-transparent to-transparent" />
+        <div className="container mx-auto px-6 relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -444,21 +445,21 @@ export default function CategoryPage() {
           >
             <Link
               href="/products"
-              className="inline-flex items-center text-gray-600 hover:text-black mb-8 transition-colors"
+              className="inline-flex items-center text-gray-300 hover:text-white mb-8 transition-colors"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Collections
             </Link>
-            <h1 className="text-4xl md:text-5xl font-light tracking-wider mb-6" style={{ fontFamily: 'var(--font-playfair-display), var(--font-crimson-text), "Playfair Display", "Crimson Text", "Bodoni Moda", "Bodoni MT", Didot, serif' }}>
+            <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
               {categoryTitles[category as keyof typeof categoryTitles]}
             </h1>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "150px" }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="h-1 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto my-6 rounded-full"
+              className="h-1 bg-gradient-to-r from-orange-500 to-orange-600 mx-auto my-6 rounded-full"
             />
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
               {categoryDescriptions[category as keyof typeof categoryDescriptions]}
             </p>
           </motion.div>
@@ -714,9 +715,9 @@ export default function CategoryPage() {
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="space-y-4">
-              <Image src="/logo-white.png" alt="Sense Fragrances" width={150} height={100} className="h-16 w-auto" />
+              <Image src="/mema-sports-logo-white.png" alt="MEMA Sports" width={150} height={100} className="h-16 w-auto" />
               <p className="text-gray-400 text-sm">
-                Crafting exceptional fragrances that capture the essence of elegance.
+                Crafting exceptional sports equipment that elevates athletic performance.
               </p>
             </div>
 
@@ -759,11 +760,11 @@ export default function CategoryPage() {
             <div>
               <h3 className="font-medium mb-4">Contact</h3>
               <div className="space-y-2 text-sm text-gray-400">
-                <p>Email: sensefragrances1@gmail.com</p>
+                <p>Email: contact@memasports.com</p>
                 <p className="mb-3">Follow us for updates</p>
                 <div className="flex space-x-3">
                   <Link
-                    href="https://www.instagram.com/sensefragrances.eg?igsh=MXYxcTh5ZTlhZzMzNQ=="
+                    href="https://www.instagram.com/memasports"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group"
@@ -783,7 +784,7 @@ export default function CategoryPage() {
                     </div>
                   </Link>
                   <Link
-                    href="https://www.tiktok.com/@sensefragrances.eg?_t=ZS-8zL3M6ji8HZ&_r=1"
+                    href="https://www.tiktok.com/@memasports"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group"
@@ -800,7 +801,7 @@ export default function CategoryPage() {
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2025 Sense Fragrances. All rights reserved.</p>
+            <p>&copy; 2025 MEMA Sports. All rights reserved.</p>
           </div>
         </div>
         </footer>

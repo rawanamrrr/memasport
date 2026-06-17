@@ -57,7 +57,7 @@ export function createEmailTemplate(options: {
 }) {
   const { title, preheader = '', theme = { mode: 'light' }, content, includeUnsubscribe = true } = options
   const colors = getEmailColors(theme)
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sensefragrance.com'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.memasports.com'
   
   return `
 <!DOCTYPE html>
@@ -393,8 +393,8 @@ export function createEmailTemplate(options: {
     <div class="email-container">
       <!-- Header -->
       <div class="email-header">
-        <h1 class="brand-name">SENSE</h1>
-        <p class="brand-tagline">FRAGRANCES</p>
+        <h1 class="brand-name">MEMA</h1>
+        <p class="brand-tagline">SPORTS</p>
       </div>
       
       <!-- Content -->
@@ -405,7 +405,7 @@ export function createEmailTemplate(options: {
       <!-- Footer -->
       <div class="email-footer">
         <p style="margin: 0 0 15px 0;">
-          © 2025 Sense Fragrances. All rights reserved.
+          © 2025 MEMA Sports. All rights reserved.
         </p>
         <p style="margin: 0;">
           <a href="${baseUrl}/contact">Contact Us</a> • 

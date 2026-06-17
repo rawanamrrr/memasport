@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
 import type { User } from "@/lib/models/types"
 
 export async function POST(request: NextRequest) {
@@ -12,24 +12,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const user = await db.collection<User>("users").findOne({ email })
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email])
 
-    if (!user) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
+
+    const user = result.rows[0]
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
     if (!isPasswordValid) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
-    const token = jwt.sign({ userId: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
-    })
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role }, 
+      process.env.JWT_SECRET!, 
+      { expiresIn: "7d" }
+    )
 
     const userData = {
-      id: user._id?.toString(),
+      id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,

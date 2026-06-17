@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
 import type { User } from "@/lib/models/types"
-import { ObjectId } from "mongodb" 
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -20,35 +19,31 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
+    // Get user
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.userId])
 
-    // ✅ Fix: Convert userId to ObjectId
-    const userId = new ObjectId(decoded.userId)
-
-    // ✅ Fix: Use ObjectId to find user
-    const user = await db.collection<User>("users").findOne({ _id: userId })
-
-    if (!user) {
+    if (userResult.rows.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // ✅ Fix: Also convert _id in duplicate email check
-    if (email !== user.email) {
-      const existingUser = await db.collection<User>("users").findOne({
-        email,
-        _id: { $ne: userId },
-      })
+    const user = userResult.rows[0]
 
-      if (existingUser) {
+    // Check if email is already in use by another user
+    if (email !== user.email) {
+      const existingUser = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND id != $2',
+        [email, decoded.userId]
+      )
+
+      if (existingUser.rows.length > 0) {
         return NextResponse.json({ error: "Email already in use" }, { status: 400 })
       }
     }
 
-    const updateData: any = {
-      name,
-      email,
-      updatedAt: new Date(),
-    }
+    // Prepare update query
+    let updateQuery = 'UPDATE users SET name = $1, email = $2, updated_at = CURRENT_TIMESTAMP'
+    const params: any[] = [name, email]
+    let paramIndex = 3
 
     if (newPassword) {
       if (!currentPassword) {
@@ -61,11 +56,15 @@ export async function PATCH(request: NextRequest) {
       }
 
       const hashedNewPassword = await bcrypt.hash(newPassword, 12)
-      updateData.password = hashedNewPassword
+      updateQuery += `, password = $${paramIndex}`
+      params.push(hashedNewPassword)
+      paramIndex++
     }
 
-    // ✅ Fix: Use ObjectId in update query
-    await db.collection<User>("users").updateOne({ _id: userId }, { $set: updateData })
+    updateQuery += ` WHERE id = $${paramIndex}`
+    params.push(decoded.userId)
+
+    await pool.query(updateQuery, params)
 
     return NextResponse.json({
       success: true,

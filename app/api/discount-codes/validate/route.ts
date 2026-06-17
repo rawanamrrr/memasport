@@ -1,5 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
+
+interface CartItem {
+  productId: string
+  price: number
+  quantity: number
+  name?: string
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,13 +20,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Items must be an array" }, { status: 400 })
     }
 
-    const db = await getDatabase()
+    const discountCodeResult = await pool.query(
+      `
+        SELECT id,
+               code,
+               type,
+               value,
+               min_order_amount as "minOrderAmount",
+               max_uses as "maxUses",
+               current_uses as "currentUses",
+               expires_at as "expiresAt",
+               is_active as "isActive",
+               buy_x as "buyX",
+               get_x as "getX"
+        FROM discount_codes
+        WHERE UPPER(code) = UPPER($1)
+          AND is_active = TRUE
+        LIMIT 1
+      `,
+      [code],
+    )
 
-    // Find active discount code (case insensitive)
-    const discountCode = await db.collection("discount").findOne({
-      code: code.toUpperCase(),
-      isActive: true,
-    })
+    const discountCode = discountCodeResult.rows[0]
 
     if (!discountCode) {
       return NextResponse.json({ error: "Invalid discount code" }, { status: 400 })
@@ -37,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     // Check minimum order amount
     if (discountCode.minOrderAmount && orderAmount < discountCode.minOrderAmount) {
-      const remaining = discountCode.minOrderAmount - orderAmount
+      const remaining = Number(discountCode.minOrderAmount) - Number(orderAmount)
       return NextResponse.json(
         { 
           error: `Add ${remaining.toFixed(2)} EGP more to your cart to apply this discount (minimum order: ${discountCode.minOrderAmount} EGP)` 
@@ -52,12 +74,12 @@ export async function POST(request: NextRequest) {
     let discountDetails = {}
 
     if (discountCode.type === "percentage") {
-      discountAmount = (orderAmount * discountCode.value) / 100
-      discountDetails = { percentage: discountCode.value }
+      discountAmount = (Number(orderAmount) * Number(discountCode.value)) / 100
+      discountDetails = { percentage: Number(discountCode.value) }
     } 
     else if (discountCode.type === "fixed") {
-      discountAmount = Math.min(discountCode.value, orderAmount)
-      discountDetails = { fixedAmount: discountCode.value }
+      discountAmount = Math.min(Number(discountCode.value), Number(orderAmount))
+      discountDetails = { fixedAmount: Number(discountCode.value) }
     } 
     else if (discountCode.type === "buyXgetX") {
       if (!items || items.length === 0) {
@@ -74,14 +96,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Create a working copy of items sorted by price (cheapest first)
-      const itemsCopy = JSON.parse(JSON.stringify(items))
-        .filter(item => item.price > 0)
-        .sort((a, b) => a.price - b.price)
+      const itemsCopy = (JSON.parse(JSON.stringify(items)) as CartItem[])
+        .filter((item: CartItem) => item.price > 0)
+        .sort((a: CartItem, b: CartItem) => a.price - b.price)
 
-      const totalQuantity = itemsCopy.reduce((sum, item) => sum + item.quantity, 0)
-      const setSize = discountCode.buyX + discountCode.getX
+      const totalQuantity = itemsCopy.reduce((sum: number, item: CartItem) => sum + item.quantity, 0)
+      const setSize = Number(discountCode.buyX) + Number(discountCode.getX)
       const fullSets = Math.floor(totalQuantity / setSize)
-      const totalFreeItems = fullSets * discountCode.getX
+      const totalFreeItems = fullSets * Number(discountCode.getX)
 
       // Check if minimum quantity requirement is met
       if (totalQuantity < discountCode.buyX) {
@@ -143,11 +165,11 @@ export async function POST(request: NextRequest) {
       discountAmount,
       code: discountCode.code,
       type: discountCode.type,
-      value: discountCode.value,
+      value: Number(discountCode.value),
       discountDetails,
       ...(discountCode.type === "buyXgetX" && {
-        buyX: discountCode.buyX,
-        getX: discountCode.getX,
+        buyX: Number(discountCode.buyX),
+        getX: Number(discountCode.getX),
         freeItems
       })
     })

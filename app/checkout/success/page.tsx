@@ -118,8 +118,8 @@ export default function CheckoutSuccessPage() {
 
               <p className="text-sm text-gray-600">
                 Need help? Contact us at{" "}
-                <a href="mailto:sensefragrances1@gmail.com" className="text-black hover:underline">
-                  sensefragrances1@gmail.com
+                <a href="mailto:contact@memasports.com" className="text-black hover:underline">
+                  contact@memasports.com
                 </a>
               </p>
             </motion.div>

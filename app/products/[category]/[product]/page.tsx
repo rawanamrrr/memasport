@@ -954,84 +954,88 @@ export default function ProductDetailPage() {
       </div>
 
               {/* Reviews Section */}
-        <section className="py-12 sm:py-16 bg-gradient-to-b from-white to-gray-50">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-8 sm:mb-12">
-              <motion.h2 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-2xl sm:text-3xl font-light tracking-tight mb-2"
-              >
-                Customer Reviews
-              </motion.h2>
-              <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full"></div>
-            </div>
+        <section className="py-12 sm:py-16 bg-black relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-purple-500/10" />
+          <div className="container mx-auto px-4 md:px-6 relative">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-8 sm:mb-12">
+                <motion.h2 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 tracking-tight"
+                >
+                  Customer <span className="text-orange-500">Reviews</span>
+                </motion.h2>
+                <p className="text-gray-400 text-sm sm:text-base">See what athletes say about this product</p>
+              </div>
 
-            {/* Reviews List */}
-            <div className="space-y-6 sm:space-y-8">
-              {reviews.length === 0 ? (
-                <div className="text-center py-8 sm:py-12 bg-white rounded-xl shadow-sm border border-gray-100">
-                  <div className="bg-gray-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
+              {/* Reviews List */}
+              <div className="space-y-6 sm:space-y-8">
+                {reviews.length === 0 ? (
+                  <div className="text-center py-8 sm:py-12 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
+                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Star className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                    </div>
+                    <p className="text-gray-300 max-w-md mx-auto text-sm sm:text-base">
+                      No reviews yet. Be the first to review this product!
+                    </p>
                   </div>
-                  <p className="text-gray-600 max-w-md mx-auto text-sm sm:text-base">
-                    No reviews yet for this fragrance.
-                  </p>
-                </div>
-              ) : (
-                reviews.map((review, index) => (
-                  <motion.div
-                    key={review._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100"
-                  >
-                    <div className="flex items-start mb-4">
-                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0" />
-                      <div className="ml-3 sm:ml-4 flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                          <div>
-                            <h4 className="font-medium text-gray-900 text-sm sm:text-base">{review.userName}</h4>
-                            <p className="text-xs sm:text-sm text-gray-600">{new Date(review.createdAt).toLocaleDateString()}</p>
-                          </div>
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                                  i < review.rating 
-                                    ? "fill-yellow-400 text-yellow-400" 
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
+                ) : (
+                  reviews.map((review, index) => (
+                    <motion.div
+                      key={review._id || review.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/10 hover:border-orange-500/30 transition-all duration-300"
+                    >
+                      <div className="flex items-start mb-4">
+                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center text-white font-bold text-lg sm:text-xl">
+                          {(review.userName || review.customerName || 'A').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                            <div>
+                              <h4 className="font-semibold text-white text-sm sm:text-base">{review.userName || review.customerName}</h4>
+                              <p className="text-xs sm:text-sm text-gray-400">{new Date(review.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                                    i < review.rating 
+                                      ? "fill-orange-500 text-orange-500" 
+                                      : "text-gray-600"
+                                  }`}
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{review.comment}</p>
-                  </motion.div>
-                ))
-              )}
-            </div>
+                      <p className="text-gray-300 leading-relaxed text-sm sm:text-base">{review.comment}</p>
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </section>
 
         {/* Related Products Section */}
-        <section className="py-12 sm:py-16 bg-gray-50 pb-24 sm:pb-28">
-          <div className="container mx-auto px-4 md:px-6">
+        <section className="py-12 sm:py-16 bg-gray-900 pb-24 sm:pb-28 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-purple-500/5" />
+          <div className="container mx-auto px-4 md:px-6 relative">
             <div className="text-center mb-8 sm:mb-12">
               <motion.h2 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-2xl sm:text-3xl font-light tracking-tight mb-2"
+                className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 tracking-tight"
               >
-                You Might Also Like
+                You Might Also <span className="text-orange-500">Like</span>
               </motion.h2>
-              <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full"></div>
+              <p className="text-gray-400 text-sm sm:text-base">Similar products you may be interested in</p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
@@ -1472,9 +1476,9 @@ export default function ProductDetailPage() {
           <div className="container mx-auto px-6">
             <div className="grid md:grid-cols-4 gap-8">
               <div className="space-y-4">
-                <Image src="/logo-white.png" alt="Sense Fragrances" width={150} height={100} className="h-16 w-auto" />
+                <Image src="/mema-sports-logo-white.png" alt="MEMA Sports" width={150} height={100} className="h-16 w-auto" />
                 <p className="text-gray-400 text-sm">
-                  Crafting exceptional fragrances that capture the essence of elegance.
+                  Crafting exceptional sports equipment that elevates athletic performance.
                 </p>
               </div>
 
@@ -1517,11 +1521,11 @@ export default function ProductDetailPage() {
               <div>
                 <h3 className="font-medium mb-4">Contact</h3>
                 <div className="space-y-2 text-sm text-gray-400">
-                  <p>Email: sensefragrances1@gmail.com</p>
+                  <p>Email: contact@memasports.com</p>
                   <p className="mb-3">Follow us for updates</p>
                   <div className="flex space-x-3">
                     <Link
-                      href="https://www.instagram.com/sensefragrances.eg?igsh=MXYxcTh5ZTlhZzMzNQ=="
+                      href="https://www.instagram.com/memasports"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group"
@@ -1541,7 +1545,7 @@ export default function ProductDetailPage() {
                       </div>
                     </Link>
                     <Link
-                      href="https://www.tiktok.com/@sensefragrances.eg?_t=ZS-8zL3M6ji8HZ&_r=1"
+                      href="https://www.tiktok.com/@memasports"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group"
@@ -1558,7 +1562,7 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-              <p>&copy; 2025 Sense Fragrances. All rights reserved.</p>
+              <p>&copy; 2025 MEMA Sports. All rights reserved.</p>
             </div>
           </div>
         </footer>

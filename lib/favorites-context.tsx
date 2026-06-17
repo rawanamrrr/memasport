@@ -94,7 +94,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       } else {
         // Guest: load from localStorage
         if (typeof window !== "undefined") {
-          const saved = localStorage.getItem("sense_favorites")
+          const saved = localStorage.getItem("mema_favorites")
           if (saved) {
             try {
               const parsed = JSON.parse(saved)
@@ -123,7 +123,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   // Save to localStorage for guests
   useEffect(() => {
     if (!authState.isAuthenticated && hydrated && typeof window !== "undefined") {
-      localStorage.setItem("sense_favorites", JSON.stringify(state.items))
+      localStorage.setItem("mema_favorites", JSON.stringify(state.items))
     }
   }, [state.items, hydrated, authState.isAuthenticated])
 

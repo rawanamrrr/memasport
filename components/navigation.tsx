@@ -79,12 +79,12 @@ export function Navigation() {
       return 'bg-transparent'
     }
 
-    return 'bg-black/90 backdrop-blur-xl border-b border-orange-500/20 shadow-[0_10px_40px_-20px_rgba(249,115,22,0.45)]'
+    return 'bg-gradient-to-b from-black/80 to-black/60 backdrop-blur-2xl border-b border-white/10 shadow-2xl'
   }
 
   // Determine logo based on page and scroll position
   const getLogo = () => {
-    return "/mema-logo.png"
+    return "/mema-sports-icon-black.png"
   }
 
   // Determine text colors based on page and scroll position
@@ -156,7 +156,7 @@ export function Navigation() {
   // Show loading state while auth is initializing
   if (authState.isLoading) {
     return (
-      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${getHeaderStyling()}`}>
+      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${getHeaderStyling()}`} style={{ marginTop: 'var(--offers-banner-height, 0px)' }}>
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             {/* Simplified loading navigation */}
@@ -179,18 +179,9 @@ export function Navigation() {
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${getHeaderStyling()}`}>
-        {/* Modern Promotional Banner */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2">
-          <div className="container mx-auto px-6 text-center">
-            <p className="text-sm font-medium">
-              🚀 FREE SHIPPING ON ORDERS OVER $100 | NEW COLLECTION DROPPING SOON
-            </p>
-          </div>
-        </div>
-
+      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${getHeaderStyling()}`} style={{ marginTop: 'var(--offers-banner-height, 0px)' }}>
         <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-20 md:h-24">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-3 group">
               <motion.div className="relative">
@@ -222,55 +213,55 @@ export function Navigation() {
             <div className="hidden md:flex items-center space-x-8">
               <Link
                 href="/"
-                className={`relative px-3 py-2 transition-colors ${getTextColors(isActiveLink("/"))}`}
+                className={`relative px-4 py-2 transition-all duration-300 font-medium ${getTextColors(isActiveLink("/"))}`}
               >
                 Home
                 {isActiveLink("/") && (
-                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${getActiveIndicatorColor()}`} />
+                  <div className={`absolute bottom-0 left-0 right-0 h-1 rounded-full ${getActiveIndicatorColor()}`} />
                 )}
               </Link>
               <Link
                 href="/about"
-                className={`relative px-3 py-2 transition-colors ${getTextColors(isActiveLink("/about"))}`}
+                className={`relative px-4 py-2 transition-all duration-300 font-medium ${getTextColors(isActiveLink("/about"))}`}
               >
                 About
                 {isActiveLink("/about") && (
-                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${getActiveIndicatorColor()}`} />
+                  <div className={`absolute bottom-0 left-0 right-0 h-1 rounded-full ${getActiveIndicatorColor()}`} />
                 )}
               </Link>
               <div className="relative group">
                 <Link
                   href="/products"
-                  className={`relative px-3 py-2 transition-colors ${getTextColors(isActiveLink("/products"))}`}
+                  className={`relative px-4 py-2 transition-all duration-300 font-medium ${getTextColors(isActiveLink("/products"))}`}
                 >
                   Products
                   {isActiveLink("/products") && (
-                    <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${getActiveIndicatorColor()}`} />
+                    <div className={`absolute bottom-0 left-0 right-0 h-1 rounded-full ${getActiveIndicatorColor()}`} />
                   )}
                 </Link>
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                  <div className="py-2">
+                <div className="absolute top-full left-0 mt-3 w-52 bg-gradient-to-br from-gray-900 to-black border border-white/10 shadow-2xl rounded-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 backdrop-blur-xl">
+                  <div className="py-3">
                     <Link
-                      href="/products/equipment"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      href="/products/men"
+                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
                     >
-                      Sports Equipment
+                      For Him
                     </Link>
                     <Link
-                      href="/products/apparel"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      href="/products/women"
+                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
                     >
-                      Athletic Apparel
+                      For Her
                     </Link>
                     <Link
-                      href="/products/accessories"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      href="/products/packages"
+                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
                     >
-                      Accessories
+                      Bundles
                     </Link>
                     <Link
                       href="/products/outlet"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
                     >
                       Outlet
                     </Link>
@@ -279,11 +270,11 @@ export function Navigation() {
               </div>
               <Link
                 href="/contact"
-                className={`relative px-3 py-2 transition-colors ${getTextColors(isActiveLink("/contact"))}`}
+                className={`relative px-4 py-2 transition-all duration-300 font-medium ${getTextColors(isActiveLink("/contact"))}`}
               >
                 Contact
                 {isActiveLink("/contact") && (
-                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${getActiveIndicatorColor()}`} />
+                  <div className={`absolute bottom-0 left-0 right-0 h-1 rounded-full ${getActiveIndicatorColor()}`} />
                 )}
               </Link>
             </div>
@@ -293,7 +284,7 @@ export function Navigation() {
               {/* Favorites */}
               <Link
                 href="/favorites"
-                className={`relative p-2 transition-colors ${getIconColors(isActiveLink("/favorites"))}`}
+                className={`relative p-2.5 rounded-xl transition-all duration-300 hover:bg-white/10 ${getIconColors(isActiveLink("/favorites"))}`}
               >
                 <Heart className="h-5 w-5" />
                 {favoritesState.count > 0 && (
@@ -310,7 +301,7 @@ export function Navigation() {
               {/* Cart */}
               <Link
                 href="/cart"
-                className={`relative p-2 transition-colors ${getIconColors(isActiveLink("/cart"))}`}
+                className={`relative p-2.5 rounded-xl transition-all duration-300 hover:bg-white/10 ${getIconColors(isActiveLink("/cart"))}`}
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartState.count > 0 && (
@@ -494,46 +485,46 @@ export function Navigation() {
                           className="ml-4 space-y-1 overflow-hidden"
                         >
                           <Link
-                            href="/products/equipment"
+                            href="/products/men"
                             className={`relative block px-4 py-2 text-sm transition-colors rounded-lg ${!isHomePage || isScrolled
-                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/equipment") ? "text-orange-600" : ""}`
-                                : `text-white/70 hover:text-white ${isActiveLink("/products/equipment") ? "text-white" : ""}`
+                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/men") ? "text-orange-600" : ""}`
+                                : `text-white/70 hover:text-white ${isActiveLink("/products/men") ? "text-white" : ""}`
                               }`}
                             onClick={() => setIsOpen(false)}
                           >
-                            {isActiveLink("/products/equipment") && (
+                            {isActiveLink("/products/men") && (
                               <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-orange-50' : 'bg-white/20'
                                 }`} />
                             )}
-                            <span className="relative z-10">Sports Equipment</span>
+                            <span className="relative z-10">For Him</span>
                           </Link>
                           <Link
-                            href="/products/apparel"
+                            href="/products/women"
                             className={`relative block px-4 py-2 text-sm transition-colors rounded-lg ${!isHomePage || isScrolled
-                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/apparel") ? "text-orange-600" : ""}`
-                                : `text-white/70 hover:text-white ${isActiveLink("/products/apparel") ? "text-white" : ""}`
+                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/women") ? "text-orange-600" : ""}`
+                                : `text-white/70 hover:text-white ${isActiveLink("/products/women") ? "text-white" : ""}`
                               }`}
                             onClick={() => setIsOpen(false)}
                           >
-                            {isActiveLink("/products/apparel") && (
+                            {isActiveLink("/products/women") && (
                               <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-orange-50' : 'bg-white/20'
                                 }`} />
                             )}
-                            <span className="relative z-10">Athletic Apparel</span>
+                            <span className="relative z-10">For Her</span>
                           </Link>
                           <Link
-                            href="/products/accessories"
+                            href="/products/packages"
                             className={`relative block px-4 py-2 text-sm transition-colors rounded-lg ${!isHomePage || isScrolled
-                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/accessories") ? "text-orange-600" : ""}`
-                                : `text-white/70 hover:text-white ${isActiveLink("/products/accessories") ? "text-white" : ""}`
+                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/packages") ? "text-orange-600" : ""}`
+                                : `text-white/70 hover:text-white ${isActiveLink("/products/packages") ? "text-white" : ""}`
                               }`}
                             onClick={() => setIsOpen(false)}
                           >
-                            {isActiveLink("/products/accessories") && (
+                            {isActiveLink("/products/packages") && (
                               <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-orange-50' : 'bg-white/20'
                                 }`} />
                             )}
-                            <span className="relative z-10">Accessories</span>
+                            <span className="relative z-10">Bundles</span>
                           </Link>
                           <Link
                             href="/products/outlet"

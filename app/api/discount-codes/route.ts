@@ -1,33 +1,48 @@
 import { type NextRequest, NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
-import { getDatabase } from "@/lib/mongodb"
-import type { ObjectId } from "mongodb"
+import pool from "@/lib/postgresql"
 
-interface DiscountCode {
-  _id?: ObjectId
-  code: string
-  type: "percentage" | "fixed" | "buyXgetX"
-  value: number
-  minOrderAmount?: number
-  maxUses?: number
-  currentUses: number
-  isActive: boolean
-  expiresAt?: Date | null
-  createdAt: Date
-  updatedAt: Date
-  buyX?: number
-  getX?: number
+export async function GET(request: NextRequest) {
+  try {
+    const result = await pool.query(`
+      SELECT id as "_id",
+             code,
+             type,
+             value,
+             min_order_amount as "minOrderAmount",
+             max_uses as "maxUses",
+             current_uses as "currentUses",
+             expires_at as "expiresAt",
+             is_active as "isActive",
+             buy_x as "buyX",
+             get_x as "getX",
+             created_at as "createdAt",
+             updated_at as "updatedAt"
+      FROM discount_codes
+      ORDER BY created_at DESC
+    `)
+
+    return NextResponse.json(result.rows)
+  } catch (error) {
+    console.error("Error in GET /api/discount-codes:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
-
+    
     if (!token) {
       return NextResponse.json({ error: "Authorization required" }, { status: 401 })
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!)
+    } catch (jwtError) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
 
     if (decoded.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 })
@@ -35,74 +50,44 @@ export async function POST(request: NextRequest) {
 
     const { code, type, value, minOrderAmount, maxUses, expiresAt, buyX, getX } = await request.json()
 
-    if (!code || !type) {
-      return NextResponse.json({ error: "Code and type are required" }, { status: 400 })
+    if (!code || !type || value === undefined) {
+      return NextResponse.json({ error: "Code, type, and value are required" }, { status: 400 })
     }
 
-    if (type !== "buyXgetX" && !value) {
-      return NextResponse.json({ error: "Value is required for this discount type" }, { status: 400 })
-    }
-
-    if (type === "buyXgetX" && (!buyX || !getX)) {
-      return NextResponse.json({ error: "Buy X and Get X quantities are required" }, { status: 400 })
-    }
-
-    const db = await getDatabase()
-
-    const discountCode: DiscountCode = {
-      code: code.toUpperCase(),
+    const result = await pool.query(`
+      INSERT INTO discount_codes (code, type, value, min_order_amount, max_uses, expires_at, buy_x, get_x)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id as "_id",
+                code,
+                type,
+                value,
+                min_order_amount as "minOrderAmount",
+                max_uses as "maxUses",
+                current_uses as "currentUses",
+                expires_at as "expiresAt",
+                is_active as "isActive",
+                buy_x as "buyX",
+                get_x as "getX",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+    `, [
+      code.toUpperCase(),
       type,
-      value: type === "buyXgetX" ? 0 : Number(value),
-      minOrderAmount: minOrderAmount ? Number(minOrderAmount) : undefined,
-      maxUses: maxUses ? Number(maxUses) : undefined,
-      currentUses: 0,
-      isActive: true,
-      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-
-    if (type === "buyXgetX") {
-      discountCode.buyX = Number(buyX)
-      discountCode.getX = Number(getX)
-    }
-
-    const result = await db.collection<DiscountCode>("discount").insertOne(discountCode)
+      value,
+      minOrderAmount || null,
+      maxUses || null,
+      expiresAt || null,
+      buyX || null,
+      getX || null
+    ])
 
     return NextResponse.json({
       success: true,
-      discountCode: { ...discountCode, _id: result.insertedId },
+      discountCode: result.rows[0],
+      message: "Discount code created successfully"
     })
   } catch (error) {
-    console.error("Create discount code error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const token = request.headers.get("authorization")?.replace("Bearer ", "")
-
-    if (!token) {
-      return NextResponse.json({ error: "Authorization required" }, { status: 401 })
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
-
-    if (decoded.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 })
-    }
-
-    const db = await getDatabase()
-    const discountCodes = await db
-      .collection<DiscountCode>("discount")
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray()
-
-    return NextResponse.json(discountCodes)
-  } catch (error) {
-    console.error("Get discount codes error:", error)
+    console.error("Error in POST /api/discount-codes:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -110,58 +95,67 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
-
+    
     if (!token) {
       return NextResponse.json({ error: "Authorization required" }, { status: 401 })
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!)
+    } catch (jwtError) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
 
     if (decoded.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get("id")
+    const { id, code, type, value, minOrderAmount, maxUses, expiresAt, isActive, buyX, getX } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: "Discount code ID is required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const { ObjectId } = await import("mongodb")
+    const result = await pool.query(`
+      UPDATE discount_codes 
+      SET code = $1,
+          type = $2,
+          value = $3,
+          min_order_amount = $4,
+          max_uses = $5,
+          expires_at = $6,
+          is_active = $7,
+          buy_x = $8,
+          get_x = $9,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $10
+      RETURNING id as "_id",
+                code,
+                type,
+                value,
+                min_order_amount as "minOrderAmount",
+                max_uses as "maxUses",
+                current_uses as "currentUses",
+                expires_at as "expiresAt",
+                is_active as "isActive",
+                buy_x as "buyX",
+                get_x as "getX",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+    `, [code.toUpperCase(), type, value, minOrderAmount || null, maxUses || null, expiresAt || null, isActive, buyX || null, getX || null, id])
 
-    const body = await request.json()
-    const updateData = {
-      ...body,
-      updatedAt: new Date(),
-    }
-
-    if (updateData.expiresAt) {
-      updateData.expiresAt = new Date(updateData.expiresAt)
-    }
-
-    const result = await db.collection<DiscountCode>("discount").updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: updateData,
-      }
-    )
-
-    if (result.matchedCount === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: "Discount code not found" }, { status: 404 })
     }
 
-    const updatedCode = await db.collection<DiscountCode>("discount").findOne({
-      _id: new ObjectId(id),
-    })
-
     return NextResponse.json({
       success: true,
-      discountCode: updatedCode,
+      discountCode: result.rows[0],
+      message: "Discount code updated successfully"
     })
   } catch (error) {
-    console.error("Update discount code error:", error)
+    console.error("Error in PUT /api/discount-codes:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -169,12 +163,17 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
-
+    
     if (!token) {
       return NextResponse.json({ error: "Authorization required" }, { status: 401 })
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!)
+    } catch (jwtError) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
 
     if (decoded.role !== "admin") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 })
@@ -187,23 +186,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Discount code ID is required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const { ObjectId } = await import("mongodb")
-
-    const result = await db.collection<DiscountCode>("discount").deleteOne({
-      _id: new ObjectId(id),
-    })
-
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: "Discount code not found" }, { status: 404 })
-    }
+    await pool.query('DELETE FROM discount_codes WHERE id = $1', [id])
 
     return NextResponse.json({
       success: true,
-      message: "Discount code deleted successfully",
+      message: "Discount code deleted successfully"
     })
   } catch (error) {
-    console.error("Delete discount code error:", error)
+    console.error("Error in DELETE /api/discount-codes:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -56,7 +56,7 @@ interface CartState {
   lastAddedItem: CartItem | null
 }
 
-const GUEST_CART_KEY = "sense_cart_guest"
+const GUEST_CART_KEY = "mema_cart_guest"
 
 function parseCart(raw: string | null): CartItem[] {
   if (!raw) {
@@ -226,7 +226,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Get user-specific cart key
   const getCartKey = () => {
     if (authState.isAuthenticated && authState.user?.id) {
-      return `sense_cart_${authState.user.id}`
+      return `mema_cart_${authState.user.id}`
     }
     return GUEST_CART_KEY
   }
@@ -236,7 +236,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const loadCart = () => {
       try {
         if (authState.isAuthenticated && authState.user?.id) {
-          const userCartKey = `sense_cart_${authState.user.id}`
+          const userCartKey = `mema_cart_${authState.user.id}`
           const guestCartItems = parseCart(localStorage.getItem(GUEST_CART_KEY))
           const userCartItems = parseCart(localStorage.getItem(userCartKey))
 

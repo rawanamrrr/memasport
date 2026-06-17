@@ -9,6 +9,7 @@ import { OrderProvider } from "@/lib/order-context"
 import { FavoritesProvider } from "@/lib/favorites-context"
 import { CartProvider } from "@/lib/cart-context"
 import { CartSuccessNotification } from "@/components/cart-success-notification"
+import { OffersBanner } from "@/components/offers-banner"
 
 // Configure fonts
 const playfairDisplay = Playfair_Display({
@@ -55,6 +56,7 @@ export default function RootLayout({
     <html lang="en" className={`${playfairDisplay.variable} ${crimsonText.variable} ${anton.variable}`}>
       <body className={inter.className}>
         <div className="page-shell flex min-h-screen flex-col">
+          <OffersBanner />
           <AuthProvider>
             <ProductProvider>
               <OrderProvider>

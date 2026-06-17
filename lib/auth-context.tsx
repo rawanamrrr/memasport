@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const authData = localStorage.getItem("sense_auth")
+        const authData = localStorage.getItem("mema_auth")
         
         if (!authData) {
           dispatch({ type: "SET_LOADING", payload: false })
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           parsedData = JSON.parse(authData)
         } catch (parseError) {
           console.error("Failed to parse auth data:", parseError)
-          localStorage.removeItem("sense_auth")
+          localStorage.removeItem("mema_auth")
           dispatch({ type: "SET_LOADING", payload: false })
           return
         }
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Validate that we have the required data
         if (!user || !token || !expiresAt) {
           console.error("Invalid auth data structure")
-          localStorage.removeItem("sense_auth")
+          localStorage.removeItem("mema_auth")
           dispatch({ type: "SET_LOADING", payload: false })
           return
         }
@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               token: refreshed.token,
               expiresAt: Date.now() + 3600 * 1000, // 1 hour expiration
             }
-            localStorage.setItem("sense_auth", JSON.stringify(newAuthData))
+            localStorage.setItem("mema_auth", JSON.stringify(newAuthData))
             dispatch({ type: "LOGIN_SUCCESS", payload: refreshed })
             dispatch({ type: "SET_LOADING", payload: false })
             return
@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               token: refreshed.token,
               expiresAt: Date.now() + 3600 * 1000, // 1 hour expiration
             }
-            localStorage.setItem("sense_auth", JSON.stringify(newAuthData))
+            localStorage.setItem("mema_auth", JSON.stringify(newAuthData))
             dispatch({ type: "LOGIN_SUCCESS", payload: refreshed })
           } else {
             throw new Error("Invalid token")
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Auth initialization error:", error)
-        localStorage.removeItem("sense_auth")
+        localStorage.removeItem("mema_auth")
         dispatch({ type: "LOGOUT" })
       } finally {
         dispatch({ type: "SET_LOADING", payload: false })
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         expiresAt: Date.now() + 3600 * 1000, // 1 hour expiration
       }
 
-      localStorage.setItem("sense_auth", JSON.stringify(authData))
+      localStorage.setItem("mema_auth", JSON.stringify(authData))
       dispatch({ type: "LOGIN_SUCCESS", payload: { user: data.user, token: data.token } })
       return true
     } catch (error) {
@@ -249,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         expiresAt: Date.now() + 3600 * 1000, // 1 hour expiration
       }
 
-      localStorage.setItem("sense_auth", JSON.stringify(authData))
+      localStorage.setItem("mema_auth", JSON.stringify(authData))
       
       // Send welcome email (fire and forget)
       fetch("/api/send-welcome-email", {

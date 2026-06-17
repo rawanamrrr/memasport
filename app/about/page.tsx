@@ -14,19 +14,19 @@ export default function AboutPage() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="section-padding pt-32 md:pt-36 pb-20 relative overflow-hidden">
+      <section className="section-padding pt-40 md:pt-36 pb-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 via-transparent to-transparent" />
         <div className="section-container relative">
+          <Link href="/" className="inline-flex items-center text-gray-300 hover:text-white mb-8 transition-colors">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Link>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <Link href="/" className="inline-flex items-center text-gray-300 hover:text-white mb-8 transition-colors">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Link>
             <div className="section-pill mb-8 justify-center mx-auto">
               <Sparkles className="mr-2 h-4 w-4 text-orange-400" />
               Mema Sports Legacy

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import nodemailer from "nodemailer"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
 import { createEmailTemplate, createEmailSection } from "@/lib/email-templates"
 
 export async function POST(request: NextRequest) {
@@ -12,16 +12,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Get active offers
-    const db = await getDatabase()
-    const offers = await db
-      .collection("offers")
-      .find({
-        isActive: true,
-        $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gt: new Date() } }],
-      })
-      .sort({ priority: -1 })
-      .limit(3)
-      .toArray()
+    const offersResult = await pool.query(`
+      SELECT id as _id,
+             title,
+             description,
+             discount_code as "discountCode",
+             is_active as "isActive",
+             priority
+      FROM offers
+      WHERE is_active = true
+        AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+      ORDER BY priority DESC
+      LIMIT 3
+    `)
+    const offers = offersResult.rows
 
     // Check environment variables
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {

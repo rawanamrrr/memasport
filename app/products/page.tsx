@@ -30,7 +30,7 @@ interface Product {
   images: string[]
   rating: number
   reviews: number
-  category: "men" | "women" | "packages" | "outlet"
+  category: "equipment" | "apparel" | "accessories" | "outlet"
   sizes: ProductSize[]
   isActive: boolean
   isNew: boolean
@@ -73,29 +73,29 @@ export default function ProductsPage() {
   }
   
   // Embla Carousel state
-  const [emblaRefMen, emblaApiMen] = useEmblaCarousel({ 
+  const [emblaRefEquipment, emblaApiEquipment] = useEmblaCarousel({ 
     align: "start",
     containScroll: "trimSnaps",
     dragFree: true,
-    loop: false
+    loop: false,
   })
-  const [selectedIndexMen, setSelectedIndexMen] = useState(0)
+  const [selectedIndexEquipment, setSelectedIndexEquipment] = useState(0)
   
-  const [emblaRefWomen, emblaApiWomen] = useEmblaCarousel({ 
+  const [emblaRefApparel, emblaApiApparel] = useEmblaCarousel({ 
     align: "start",
     containScroll: "trimSnaps",
     dragFree: true,
-    loop: false
+    loop: false,
   })
-  const [selectedIndexWomen, setSelectedIndexWomen] = useState(0)
+  const [selectedIndexApparel, setSelectedIndexApparel] = useState(0)
   
-  const [emblaRefPackages, emblaApiPackages] = useEmblaCarousel({ 
+  const [emblaRefAccessories, emblaApiAccessories] = useEmblaCarousel({ 
     align: "start",
     containScroll: "trimSnaps",
     dragFree: true,
-    loop: false
+    loop: false,
   })
-  const [selectedIndexPackages, setSelectedIndexPackages] = useState(0)
+  const [selectedIndexAccessories, setSelectedIndexAccessories] = useState(0)
   
   const [emblaRefOutlet, emblaApiOutlet] = useEmblaCarousel({ 
     align: "start",
@@ -141,9 +141,9 @@ useEffect(() => {
 
 
   const categorizedProducts = {
-    men: products.filter((p) => p.category === "men" && p.isActive),
-    women: products.filter((p) => p.category === "women" && p.isActive),
-    packages: products.filter((p) => p.category === "packages" && p.isActive),
+    equipment: products.filter((p) => p.category === "equipment" && p.isActive),
+    apparel: products.filter((p) => p.category === "apparel" && p.isActive),
+    accessories: products.filter((p) => p.category === "accessories" && p.isActive),
     outlet: products.filter((p) => p.category === "outlet" && p.isActive),
   }
 
@@ -223,20 +223,20 @@ useEffect(() => {
   }
 
   // Carousel scroll functions
-  const scrollToMen = useCallback((index: number) => {
-    if (!emblaApiMen) return
-    emblaApiMen.scrollTo(index)
-  }, [emblaApiMen])
+  const scrollToEquipment = useCallback((index: number) => {
+    if (!emblaApiEquipment) return
+    emblaApiEquipment.scrollTo(index)
+  }, [emblaApiEquipment])
 
-  const scrollToWomen = useCallback((index: number) => {
-    if (!emblaApiWomen) return
-    emblaApiWomen.scrollTo(index)
-  }, [emblaApiWomen])
+  const scrollToApparel = useCallback((index: number) => {
+    if (!emblaApiApparel) return
+    emblaApiApparel.scrollTo(index)
+  }, [emblaApiApparel])
 
-  const scrollToPackages = useCallback((index: number) => {
-    if (!emblaApiPackages) return
-    emblaApiPackages.scrollTo(index)
-  }, [emblaApiPackages])
+  const scrollToAccessories = useCallback((index: number) => {
+    if (!emblaApiAccessories) return
+    emblaApiAccessories.scrollTo(index)
+  }, [emblaApiAccessories])
 
   const scrollToOutlet = useCallback((index: number) => {
     if (!emblaApiOutlet) return
@@ -245,25 +245,25 @@ useEffect(() => {
 
   // Carousel event listeners
   useEffect(() => {
-    if (!emblaApiMen) return
-    emblaApiMen.on('select', () => {
-      setSelectedIndexMen(emblaApiMen.selectedScrollSnap())
+    if (!emblaApiEquipment) return
+    emblaApiEquipment.on('select', () => {
+      setSelectedIndexEquipment(emblaApiEquipment.selectedScrollSnap())
     })
-  }, [emblaApiMen])
+  }, [emblaApiEquipment])
 
   useEffect(() => {
-    if (!emblaApiWomen) return
-    emblaApiWomen.on('select', () => {
-      setSelectedIndexWomen(emblaApiWomen.selectedScrollSnap())
+    if (!emblaApiApparel) return
+    emblaApiApparel.on('select', () => {
+      setSelectedIndexApparel(emblaApiApparel.selectedScrollSnap())
     })
-  }, [emblaApiWomen])
+  }, [emblaApiApparel])
 
   useEffect(() => {
-    if (!emblaApiPackages) return
-    emblaApiPackages.on('select', () => {
-      setSelectedIndexPackages(emblaApiPackages.selectedScrollSnap())
+    if (!emblaApiAccessories) return
+    emblaApiAccessories.on('select', () => {
+      setSelectedIndexAccessories(emblaApiAccessories.selectedScrollSnap())
     })
-  }, [emblaApiPackages])
+  }, [emblaApiAccessories])
 
   useEffect(() => {
     if (!emblaApiOutlet) return
@@ -484,9 +484,9 @@ useEffect(() => {
       )}
 
       {/* Hero Section */}
-      <section className="section-padding pt-40 md:pt-32 pb-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 via-transparent to-transparent" />
-        <div className="absolute -inset-32 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.18),_transparent_60%)] opacity-60" />
+      <section className="section-padding pt-44 md:pt-36 pb-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-orange-500/15 via-transparent to-transparent" />
+        <div className="absolute -inset-32 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.2),_transparent_60%)] opacity-70" />
         <div className="section-container relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -494,29 +494,29 @@ useEffect(() => {
             transition={{ duration: 0.8 }}
             className="text-center max-w-4xl mx-auto"
           >
-            <div className="section-pill mb-6 justify-center mx-auto">
+            <div className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-orange-500/15 to-orange-600/10 border border-orange-500/40 rounded-full mb-8 backdrop-blur-xl shadow-lg shadow-orange-500/10">
               <Sparkles className="mr-2 h-4 w-4 text-orange-400" />
-              Signature Collections
+              <span className="text-orange-300 text-sm font-semibold tracking-wider">SIGNATURE COLLECTIONS</span>
             </div>
-            <h1 className="hero-heading text-white">Collections</h1>
-            <p className="hero-subheading mt-6">
-              Discover our carefully curated fragrances, each crafted to capture unforgettable moments and express individual
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-white mb-8 tracking-tight">Collections</h1>
+            <p className="text-xl md:text-2xl text-gray-300/90 max-w-3xl mx-auto leading-relaxed font-light">
+              Discover our carefully curated products, each crafted to capture unforgettable moments and express individual
               personalities.
             </p>
-            <div className="mt-10 flex flex-wrap gap-4 justify-center">
+            <div className="mt-12 flex flex-wrap gap-5 justify-center">
               <Button
                 onClick={fetchProducts}
                 size="lg"
-                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-3 rounded-xl shadow-lg shadow-orange-500/30"
+                className="group shadow-2xl hover:shadow-orange-500/40"
               >
-                <RefreshCw className="h-5 w-5 mr-2" />
+                <RefreshCw className="h-5 w-5 mr-2 group-hover:rotate-180 transition-transform duration-500" />
                 Refresh All Products
               </Button>
               <Link href="#collections" className="inline-flex">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-white/20 text-white hover:bg-white/10 rounded-xl"
+                  className="backdrop-blur-xl"
                 >
                   Explore Sections
                 </Button>
@@ -526,8 +526,8 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* For Him Collection */}
-      <section id="collections" className="section-padding relative overflow-hidden">
+      {/* Equipment Collection */}
+      <section id="collections" className="section-padding py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500/15 via-transparent to-purple-500/10" />
         <div className="section-container relative">
           <motion.div
@@ -539,23 +539,22 @@ useEffect(() => {
           >
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="section-title mb-2">For Him</h2>
-                <p className="muted-text">Masculine &amp; Sophisticated</p>
+                <h2 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight">Equipment</h2>
+                <p className="text-lg text-gray-400/90 font-light">Professional-grade sports gear</p>
               </div>
               <div className="flex items-center gap-3">
                 <Button
                   onClick={fetchProducts}
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="backdrop-blur-xl"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
                 </Button>
-                <Link href="/products/men">
+                <Link href="/products/equipment">
                   <Button
                     size="sm"
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
                   >
                     View All
                   </Button>
@@ -565,9 +564,9 @@ useEffect(() => {
 
             {/* Mobile Carousel */}
             <div className="md:hidden">
-              <div className="overflow-hidden" ref={emblaRefMen}>
+              <div className="overflow-hidden" ref={emblaRefEquipment}>
                 <div className="flex">
-                  {categorizedProducts.men.map((product, index) => (
+                  {categorizedProducts.equipment.map((product, index) => (
                     <div key={product._id} className="flex-[0_0_80%] min-w-0 pl-4 relative h-full">
                       <div className="group relative h-full">
                         {/* Favorite Button */}
@@ -599,7 +598,7 @@ useEffect(() => {
                         </div>
                         
                         {/* Product Card - Mobile Carousel */}
-                        <Card className="border border-white/10 bg-white/5 backdrop-blur-xl shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 transition-all duration-300 h-full mr-4">
+                        <Card className="border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-2xl shadow-2xl hover:shadow-glow hover:border-white/20 transition-all duration-500 h-full mr-4 overflow-hidden">
                           <CardContent className="p-0 h-full flex flex-col">
                             <Link href={`/products/${product.category}/${product.id}`} className="block relative aspect-square flex-grow">
                               <div className="relative w-full h-full group-hover:scale-105 transition-transform duration-500">
@@ -690,12 +689,12 @@ useEffect(() => {
                 </div>
               </div>
               <div className="flex justify-center mt-4 md:hidden">
-                {categorizedProducts.men.map((_, index) => (
+                {categorizedProducts.equipment.map((_, index) => (
                   <button
                     key={index}
-                    onClick={() => scrollToMen(index)}
+                    onClick={() => scrollToEquipment(index)}
                     className={`w-2 h-2 mx-1 rounded-full transition-colors ${
-                      index === selectedIndexMen ? 'bg-black' : 'bg-gray-300'
+                      index === selectedIndexEquipment ? 'bg-black' : 'bg-gray-300'
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -705,7 +704,7 @@ useEffect(() => {
 
             {/* Desktop Grid */}
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {categorizedProducts.men.map((product, index) => (
+              {categorizedProducts.equipment.map((product, index) => (
                 <motion.div
                   key={product._id}
                   initial={{ opacity: 0, y: 30 }}
@@ -844,7 +843,7 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* For Her Collection */}
+      {/* Apparel Collection */}
       <section className="section-padding relative">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/15 via-transparent to-orange-500/10" />
         <div className="section-container relative">
@@ -857,8 +856,8 @@ useEffect(() => {
           >
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="section-title mb-2">For Her</h2>
-                <p className="muted-text">Elegant &amp; Captivating</p>
+                <h2 className="section-title mb-2">Apparel</h2>
+                <p className="muted-text">High-performance athletic wear</p>
               </div>
               <div className="flex items-center gap-3">
                 <Button
@@ -870,7 +869,7 @@ useEffect(() => {
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
                 </Button>
-                <Link href="/products/women">
+                <Link href="/products/apparel">
                   <Button
                     size="sm"
                     className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
@@ -883,9 +882,9 @@ useEffect(() => {
 
             {/* Mobile Carousel */}
             <div className="md:hidden">
-              <div className="overflow-hidden" ref={emblaRefWomen}>
+              <div className="overflow-hidden" ref={emblaRefApparel}>
                 <div className="flex">
-                  {categorizedProducts.women.map((product, index) => (
+                  {categorizedProducts.apparel.map((product, index) => (
                     <div key={product._id} className="flex-[0_0_80%] min-w-0 pl-4 relative h-full">
                       <div className="group relative h-full">
                         {/* Favorite Button */}
@@ -1008,12 +1007,12 @@ useEffect(() => {
                 </div>
               </div>
               <div className="flex justify-center mt-4 md:hidden">
-                {categorizedProducts.women.map((_, index) => (
+                {categorizedProducts.apparel.map((_, index) => (
                   <button
                     key={index}
-                    onClick={() => scrollToWomen(index)}
+                    onClick={() => scrollToApparel(index)}
                     className={`w-2 h-2 mx-1 rounded-full transition-colors ${
-                      index === selectedIndexWomen ? 'bg-black' : 'bg-gray-300'
+                      index === selectedIndexApparel ? 'bg-black' : 'bg-gray-300'
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -1023,7 +1022,7 @@ useEffect(() => {
 
             {/* Desktop Grid */}
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {categorizedProducts.women.map((product, index) => (
+              {categorizedProducts.apparel.map((product, index) => (
                 <motion.div
                   key={product._id}
                   initial={{ opacity: 0, y: 30 }}
@@ -1188,7 +1187,7 @@ useEffect(() => {
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
                 </Button>
-                <Link href="/products/packages">
+                <Link href="/products/accessories">
                   <Button
                     size="sm"
                     className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
@@ -1201,9 +1200,9 @@ useEffect(() => {
 
             {/* Mobile Carousel */}
             <div className="md:hidden">
-              <div className="overflow-hidden" ref={emblaRefPackages}>
+              <div className="overflow-hidden" ref={emblaRefAccessories}>
                 <div className="flex">
-                  {categorizedProducts.packages.map((product, index) => (
+                  {categorizedProducts.accessories.map((product, index) => (
                     <div key={product._id} className="flex-[0_0_80%] min-w-0 pl-4 relative h-full">
                       <div className="group relative h-full">
                         {/* Favorite Button */}
@@ -1326,12 +1325,12 @@ useEffect(() => {
                 </div>
               </div>
               <div className="flex justify-center mt-4 md:hidden">
-                {categorizedProducts.packages.map((_, index) => (
+                {categorizedProducts.accessories.map((_, index) => (
                   <button
                     key={index}
-                    onClick={() => scrollToPackages(index)}
+                    onClick={() => scrollToAccessories(index)}
                     className={`w-2 h-2 mx-1 rounded-full transition-colors ${
-                      index === selectedIndexPackages ? 'bg-black' : 'bg-gray-300'
+                      index === selectedIndexAccessories ? 'bg-black' : 'bg-gray-300'
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -1341,7 +1340,7 @@ useEffect(() => {
 
             {/* Desktop Grid */}
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {categorizedProducts.packages.map((product, index) => (
+              {categorizedProducts.accessories.map((product, index) => (
                 <motion.div
                   key={product._id}
                   initial={{ opacity: 0, y: 30 }}
@@ -1883,14 +1882,14 @@ useEffect(() => {
             >
               <h3 className="font-medium mb-4">Collections</h3>
               <div className="space-y-2 text-sm">
-                <Link href="/products/men" className="block text-gray-400 hover:text-white transition-colors">
-                  For Him
+                <Link href="/products/equipment" className="block text-gray-400 hover:text-white transition-colors">
+                  Equipment
                 </Link>
-                <Link href="/products/women" className="block text-gray-400 hover:text-white transition-colors">
-                  For Her
+                <Link href="/products/apparel" className="block text-gray-400 hover:text-white transition-colors">
+                  Apparel
                 </Link>
-                <Link href="/products/packages" className="block text-gray-400 hover:text-white transition-colors">
-                  Bundles
+                <Link href="/products/accessories" className="block text-gray-400 hover:text-white transition-colors">
+                  Accessories
                 </Link>
                 <Link href="/products/outlet" className="block text-gray-400 hover:text-white transition-colors">
                   Outlet Deals

@@ -17,14 +17,14 @@ import { useAuth } from "@/lib/auth-context"
 
 interface ProductSize {
   size: string
-  volume: string
+  variant: string
   originalPrice?: string
   discountedPrice?: string
 }
 
 interface GiftPackageSize {
   size: string
-  volume: string
+  variant: string
   productOptions: {
     productId: string
     productName: string
@@ -40,7 +40,7 @@ interface Product {
   description: string
   longDescription?: string
   images: string[]
-  category: "men" | "women" | "packages" | "outlet"
+  category: "equipment" | "apparel" | "accessories" | "outlet"
   sizes: ProductSize[]
   giftPackageSizes?: GiftPackageSize[]
   packagePrice?: number
@@ -68,19 +68,19 @@ export default function EditProductPage() {
     name: "",
     description: "",
     longDescription: "",
-    category: "men",
-    topNotes: [""],
-    middleNotes: [""],
-    baseNotes: [""],
+    category: "equipment",
+    features: [""],
+    specifications: [""],
+    materials: [""],
     sizes: [{ 
       size: "", 
-      volume: "",
+      variant: "",
       originalPrice: "",
       discountedPrice: ""
     }],
     giftPackageSizes: [{
       size: "",
-      volume: "",
+      variant: "",
       productOptions: [{
         productId: "",
         productName: "",
@@ -126,24 +126,24 @@ export default function EditProductPage() {
           name: product.name || "",
           description: product.description || "",
           longDescription: product.longDescription || "",
-          category: product.category || "men",
-          topNotes: product.notes?.top || [""],
-          middleNotes: product.notes?.middle || [""],
-          baseNotes: product.notes?.base || [""],
+          category: product.category || "equipment",
+          features: product.notes?.top || [""],
+          specifications: product.notes?.middle || [""],
+          materials: product.notes?.base || [""],
           sizes: product.sizes?.map((size: any) => ({
             size: size.size || "",
-            volume: size.volume || "",
+            variant: size.volume || "",
             originalPrice: size.originalPrice?.toString() || "",
             discountedPrice: size.discountedPrice?.toString() || ""
           })) || [{ 
             size: "", 
-            volume: "",
+            variant: "",
             originalPrice: "",
             discountedPrice: ""
           }],
           giftPackageSizes: product.giftPackageSizes?.map((size: any) => ({
             size: size.size || "",
-            volume: size.volume || "",
+            variant: size.volume || "",
             productOptions: size.productOptions?.map((opt: any) => ({
               productId: opt.productId || "",
               productName: opt.productName || "",
@@ -157,7 +157,7 @@ export default function EditProductPage() {
             }]
           })) || [{
             size: "",
-            volume: "",
+            variant: "",
             productOptions: [{
               productId: "",
               productName: "",
@@ -201,7 +201,7 @@ export default function EditProductPage() {
         const response = await fetch("/api/products?isGiftPackage=false&limit=500")
         if (response.ok) {
           const products = await response.json()
-          setAvailableProducts(products.filter((p: any) => p.category !== "packages"))
+          setAvailableProducts(products.filter((p: any) => p.category !== "accessories"))
         }
       } catch (error) {
         console.error("Error fetching products:", error)
@@ -295,13 +295,13 @@ export default function EditProductPage() {
         category: formData.category,
         sizes: formData.sizes.map(size => ({
           size: size.size,
-          volume: size.volume,
+          volume: size.variant,
           originalPrice: size.originalPrice ? parseFloat(size.originalPrice) : undefined,
           discountedPrice: size.discountedPrice ? parseFloat(size.discountedPrice) : undefined
         })),
         giftPackageSizes: formData.isGiftPackage ? formData.giftPackageSizes.map(size => ({
           size: size.size,
-          volume: size.volume,
+          volume: size.variant,
           productOptions: size.productOptions.filter(opt => opt.productId && opt.productName).map(opt => ({
             productId: opt.productId,
             productName: opt.productName,
@@ -314,9 +314,9 @@ export default function EditProductPage() {
         isGiftPackage: formData.isGiftPackage,
         images: uploadedImages,
         notes: {
-          top: formData.topNotes.filter(n => n.trim() !== ""),
-          middle: formData.middleNotes.filter(n => n.trim() !== ""),
-          base: formData.baseNotes.filter(n => n.trim() !== "")
+          top: formData.features.filter((n: string) => n.trim() !== ""),
+          middle: formData.specifications.filter((n: string) => n.trim() !== ""),
+          base: formData.materials.filter((n: string) => n.trim() !== "")
         },
         isActive: formData.isActive,
         isNew: formData.isNew,
@@ -362,21 +362,21 @@ export default function EditProductPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleNotesChange = (type: "topNotes" | "middleNotes" | "baseNotes", index: number, value: string) => {
+  const handleNotesChange = (type: "features" | "specifications" | "materials", index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
       [type]: prev[type].map((note, i) => (i === index ? value : note)),
     }))
   }
 
-  const addNote = (type: "topNotes" | "middleNotes" | "baseNotes") => {
+  const addNote = (type: "features" | "specifications" | "materials") => {
     setFormData(prev => ({
       ...prev,
       [type]: [...prev[type], ""],
     }))
   }
 
-  const removeNote = (type: "topNotes" | "middleNotes" | "baseNotes", index: number) => {
+  const removeNote = (type: "features" | "specifications" | "materials", index: number) => {
     setFormData(prev => ({
       ...prev,
       [type]: prev[type].filter((_, i) => i !== index),
@@ -395,7 +395,7 @@ export default function EditProductPage() {
       ...prev,
       sizes: [...prev.sizes, { 
         size: "", 
-        volume: "",
+        variant: "",
         originalPrice: "",
         discountedPrice: ""
       }],
@@ -424,7 +424,7 @@ export default function EditProductPage() {
       ...prev,
       giftPackageSizes: [...prev.giftPackageSizes, {
         size: "",
-        volume: "",
+        variant: "",
         productOptions: [{
           productId: "",
           productName: "",
@@ -674,9 +674,9 @@ export default function EditProductPage() {
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="men">For Him</SelectItem>
-                            <SelectItem value="women">For Her</SelectItem>
-                            <SelectItem value="packages">Bundles</SelectItem>
+                            <SelectItem value="equipment">Sports Equipment</SelectItem>
+                            <SelectItem value="apparel">Athletic Apparel</SelectItem>
+                            <SelectItem value="accessories">Accessories</SelectItem>
                             <SelectItem value="outlet">Outlet</SelectItem>
                           </SelectContent>
                         </Select>
@@ -744,11 +744,11 @@ export default function EditProductPage() {
                                   />
                                 </div>
                                 <div>
-                                  <Label>Volume</Label>
+                                  <Label>Variant</Label>
                                   <Input
-                                    value={size.volume}
-                                    onChange={(e) => handleSizeChange(index, "volume", e.target.value)}
-                                    placeholder="15ml"
+                                    value={size.variant}
+                                    onChange={(e) => handleSizeChange(index, "variant", e.target.value)}
+                                    placeholder="Blue/White"
                                     required
                                   />
                                 </div>
@@ -855,11 +855,11 @@ export default function EditProductPage() {
                                         />
                                       </div>
                                       <div>
-                                        <Label>Volume</Label>
+                                        <Label>Variant</Label>
                                         <Input
-                                          value={size.volume}
-                                          onChange={(e) => handleGiftPackageSizeChange(sizeIndex, "volume", e.target.value)}
-                                          placeholder="15ml"
+                                          value={size.variant}
+                                          onChange={(e) => handleGiftPackageSizeChange(sizeIndex, "variant", e.target.value)}
+                                          placeholder="Standard"
                                           required
                                         />
                                       </div>
@@ -966,29 +966,29 @@ export default function EditProductPage() {
                       </div>
                     )}
 
-                    {/* Fragrance Notes */}
+                    {/* Product Details */}
                     <div className="grid md:grid-cols-3 gap-6">
-                      {/* Top Notes */}
+                      {/* Key Features */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <Label>Top Notes</Label>
-                          <Button type="button" onClick={() => addNote("topNotes")} size="sm" variant="outline">
+                          <Label>Key Features</Label>
+                          <Button type="button" onClick={() => addNote("features")} size="sm" variant="outline">
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {formData.topNotes.map((note, index) => (
+                          {formData.features.map((note: string, index: number) => (
                             <div key={index} className="flex items-center space-x-2">
                               <Input
                                 value={note}
-                                onChange={(e) => handleNotesChange("topNotes", index, e.target.value)}
-                                placeholder="Bergamot"
+                                onChange={(e) => handleNotesChange("features", index, e.target.value)}
+                                placeholder="Lightweight design"
                                 className="flex-1"
                               />
-                              {formData.topNotes.length > 1 && (
+                              {formData.features.length > 1 && (
                                 <Button
                                   type="button"
-                                  onClick={() => removeNote("topNotes", index)}
+                                  onClick={() => removeNote("features", index)}
                                   size="sm"
                                   variant="outline"
                                   className="text-red-600 hover:text-red-700"
@@ -1001,27 +1001,27 @@ export default function EditProductPage() {
                         </div>
                       </div>
 
-                      {/* Middle Notes */}
+                      {/* Specifications */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <Label>Middle Notes</Label>
-                          <Button type="button" onClick={() => addNote("middleNotes")} size="sm" variant="outline">
+                          <Label>Specifications</Label>
+                          <Button type="button" onClick={() => addNote("specifications")} size="sm" variant="outline">
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {formData.middleNotes.map((note, index) => (
+                          {formData.specifications.map((note: string, index: number) => (
                             <div key={index} className="flex items-center space-x-2">
                               <Input
                                 value={note}
-                                onChange={(e) => handleNotesChange("middleNotes", index, e.target.value)}
-                                placeholder="Cedar"
+                                onChange={(e) => handleNotesChange("specifications", index, e.target.value)}
+                                placeholder="Breathable mesh"
                                 className="flex-1"
                               />
-                              {formData.middleNotes.length > 1 && (
+                              {formData.specifications.length > 1 && (
                                 <Button
                                   type="button"
-                                  onClick={() => removeNote("middleNotes", index)}
+                                  onClick={() => removeNote("specifications", index)}
                                   size="sm"
                                   variant="outline"
                                   className="text-red-600 hover:text-red-700"
@@ -1034,27 +1034,27 @@ export default function EditProductPage() {
                         </div>
                       </div>
 
-                      {/* Base Notes */}
+                      {/* Materials */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <Label>Base Notes</Label>
-                          <Button type="button" onClick={() => addNote("baseNotes")} size="sm" variant="outline">
+                          <Label>Materials</Label>
+                          <Button type="button" onClick={() => addNote("materials")} size="sm" variant="outline">
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {formData.baseNotes.map((note, index) => (
+                          {formData.materials.map((note: string, index: number) => (
                             <div key={index} className="flex items-center space-x-2">
                               <Input
                                 value={note}
-                                onChange={(e) => handleNotesChange("baseNotes", index, e.target.value)}
-                                placeholder="Amber"
+                                onChange={(e) => handleNotesChange("materials", index, e.target.value)}
+                                placeholder="Premium synthetic leather"
                                 className="flex-1"
                               />
-                              {formData.baseNotes.length > 1 && (
+                              {formData.materials.length > 1 && (
                                 <Button
                                   type="button"
-                                  onClick={() => removeNote("baseNotes", index)}
+                                  onClick={() => removeNote("materials", index)}
                                   size="sm"
                                   variant="outline"
                                   className="text-red-600 hover:text-red-700"

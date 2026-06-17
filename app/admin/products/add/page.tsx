@@ -17,14 +17,14 @@ import { useAuth } from "@/lib/auth-context"
 
 interface ProductSize {
   size: string
-  volume: string
+  variant: string
   originalPrice?: string
   discountedPrice?: string
 }
 
 interface GiftPackageSize {
   size: string
-  volume: string
+  variant: string
   productOptions: {
     productId: string
     productName: string
@@ -53,19 +53,19 @@ export default function AddProductPage() {
     name: "",
     description: "",
     longDescription: "",
-    category: "men",
-    topNotes: [""],
-    middleNotes: [""],
-    baseNotes: [""],
+    category: "equipment",
+    features: [""],
+    specifications: [""],
+    materials: [""],
     sizes: [{ 
       size: "", 
-      volume: "",
+      variant: "",
       originalPrice: "",
       discountedPrice: ""
     }],
     giftPackageSizes: [{
       size: "",
-      volume: "",
+      variant: "",
       productOptions: [{
         productId: "",
         productName: "",
@@ -94,7 +94,7 @@ export default function AddProductPage() {
         const response = await fetch("/api/products?isGiftPackage=false&limit=500")
         if (response.ok) {
           const products = await response.json()
-          setAvailableProducts(products.filter((p: any) => p.category !== "packages"))
+          setAvailableProducts(products.filter((p: any) => p.category !== "accessories"))
         }
       } catch (error) {
         console.error("Error fetching products:", error)
@@ -198,9 +198,9 @@ export default function AddProductPage() {
         category: formData.category,
         images: uploadedImages.length > 0 ? uploadedImages : ["/placeholder.svg"],
         notes: {
-          top: formData.topNotes.filter(note => note.trim() !== ""),
-          middle: formData.middleNotes.filter(note => note.trim() !== ""),
-          base: formData.baseNotes.filter(note => note.trim() !== ""),
+          top: formData.features.filter(note => note.trim() !== ""),
+          middle: formData.specifications.filter(note => note.trim() !== ""),
+          base: formData.materials.filter(note => note.trim() !== ""),
         },
         isActive: formData.isActive,
         isNew: formData.isNew,
@@ -214,14 +214,14 @@ export default function AddProductPage() {
         product.packageOriginalPrice = formData.packageOriginalPrice ? parseFloat(formData.packageOriginalPrice) : undefined
         product.giftPackageSizes = formData.giftPackageSizes.map((size) => ({
           size: size.size,
-          volume: size.volume,
+          volume: size.variant,
           productOptions: size.productOptions.filter(option => option.productId.trim() !== "")
         }))
       } else {
         // Regular product
         product.sizes = formData.sizes.map((size) => ({
           size: size.size,
-          volume: size.volume,
+          volume: size.variant,
           originalPrice: size.originalPrice ? parseFloat(size.originalPrice) : undefined,
           discountedPrice: size.discountedPrice ? parseFloat(size.discountedPrice) : undefined
         }))
@@ -270,21 +270,21 @@ export default function AddProductPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleNotesChange = (type: "topNotes" | "middleNotes" | "baseNotes", index: number, value: string) => {
+  const handleNotesChange = (type: "features" | "specifications" | "materials", index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
       [type]: prev[type].map((note, i) => (i === index ? value : note)),
     }))
   }
 
-  const addNote = (type: "topNotes" | "middleNotes" | "baseNotes") => {
+  const addNote = (type: "features" | "specifications" | "materials") => {
     setFormData(prev => ({
       ...prev,
       [type]: [...prev[type], ""],
     }))
   }
 
-  const removeNote = (type: "topNotes" | "middleNotes" | "baseNotes", index: number) => {
+  const removeNote = (type: "features" | "specifications" | "materials", index: number) => {
     setFormData(prev => ({
       ...prev,
       [type]: prev[type].filter((_, i) => i !== index),
@@ -303,7 +303,7 @@ export default function AddProductPage() {
       ...prev,
       sizes: [...prev.sizes, { 
         size: "", 
-        volume: "",
+        variant: "",
         originalPrice: "",
         discountedPrice: ""
       }],
@@ -332,7 +332,7 @@ export default function AddProductPage() {
       ...prev,
       giftPackageSizes: [...prev.giftPackageSizes, {
         size: "",
-        volume: "",
+        variant: "",
         productOptions: [{
           productId: "",
           productName: "",
@@ -472,7 +472,7 @@ export default function AddProductPage() {
               Back to Dashboard
             </Link>
             <h1 className="text-3xl font-light tracking-wider mb-2">Add New Product</h1>
-            <p className="text-gray-600">Create a new fragrance for your catalog</p>
+            <p className="text-gray-600">Create a new sports product for your catalog</p>
           </motion.div>
 
           <div className="max-w-4xl mx-auto">
@@ -558,7 +558,12 @@ export default function AddProductPage() {
                           id="name"
                           value={formData.name}
                           onChange={(e) => handleChange("name", e.target.value)}
-                          placeholder="e.g., Midnight Essence"
+                          placeholder={
+                            formData.category === "equipment" ? "e.g., Pro Tennis Racket" :
+                            formData.category === "apparel" ? "e.g., Performance Running Shirt" :
+                            formData.category === "accessories" ? "e.g., Sport Water Bottle" :
+                            "e.g., Pro Basketball Shoes"
+                          }
                           required
                         />
                       </div>
@@ -574,10 +579,10 @@ export default function AddProductPage() {
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="men">For Him</SelectItem>
-                            <SelectItem value="women">For Her</SelectItem>
-                            <SelectItem value="packages">Bundles</SelectItem>
-                            <SelectItem value="outlet">Outlet Collection</SelectItem>
+                            <SelectItem value="equipment">Sports Equipment</SelectItem>
+                            <SelectItem value="apparel">Athletic Apparel</SelectItem>
+                            <SelectItem value="accessories">Accessories</SelectItem>
+                            <SelectItem value="outlet">Outlet</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -675,11 +680,11 @@ export default function AddProductPage() {
                                   />
                                 </div>
                                 <div>
-                                  <Label>Volume</Label>
+                                  <Label>Variant</Label>
                                   <Input
-                                    value={size.volume}
-                                    onChange={(e) => handleGiftPackageSizeChange(sizeIndex, "volume", e.target.value)}
-                                    placeholder="15ml"
+                                    value={size.variant}
+                                    onChange={(e) => handleGiftPackageSizeChange(sizeIndex, "variant", e.target.value)}
+                                    placeholder="Standard"
                                     required
                                   />
                                 </div>
@@ -798,20 +803,38 @@ export default function AddProductPage() {
                           <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                             <div className="grid md:grid-cols-4 gap-3 items-end">
                               <div>
-                                <Label>Size Name</Label>
+                                <Label>
+                                  {formData.category === "equipment" ? "Size/Model" : 
+                                   formData.category === "apparel" ? "Size" : 
+                                   formData.category === "accessories" ? "Size" : "Size"}
+                                </Label>
                                 <Input
                                   value={size.size}
                                   onChange={(e) => handleSizeChange(index, "size", e.target.value)}
-                                  placeholder="Travel"
+                                  placeholder={
+                                    formData.category === "equipment" ? "Standard / Pro / Elite" :
+                                    formData.category === "apparel" ? "S / M / L / XL" :
+                                    formData.category === "accessories" ? "One Size / S / M / L" :
+                                    "Medium"
+                                  }
                                   required
                                 />
                               </div>
                               <div>
-                                <Label>Volume</Label>
+                                <Label>
+                                  {formData.category === "equipment" ? "Color/Finish" : 
+                                   formData.category === "apparel" ? "Color" : 
+                                   formData.category === "accessories" ? "Color/Style" : "Variant"}
+                                </Label>
                                 <Input
-                                  value={size.volume}
-                                  onChange={(e) => handleSizeChange(index, "volume", e.target.value)}
-                                  placeholder="15ml"
+                                  value={size.variant}
+                                  onChange={(e) => handleSizeChange(index, "variant", e.target.value)}
+                                  placeholder={
+                                    formData.category === "equipment" ? "Matte Black / Glossy Red" :
+                                    formData.category === "apparel" ? "Navy Blue / Black / White" :
+                                    formData.category === "accessories" ? "Black / Gray" :
+                                    "Blue/White"
+                                  }
                                   required
                                 />
                               </div>
@@ -855,29 +878,39 @@ export default function AddProductPage() {
                     </div>
                     )}
 
-                    {/* Fragrance Notes */}
+                    {/* Product Details - Category Specific */}
                     <div className="grid md:grid-cols-3 gap-6">
-                      {/* Top Notes */}
+                      {/* Key Features */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <Label>Top Notes</Label>
-                          <Button type="button" onClick={() => addNote("topNotes")} size="sm" variant="outline">
+                          <Label>
+                            {formData.category === "equipment" && "Performance Features"}
+                            {formData.category === "apparel" && "Design Features"}
+                            {formData.category === "accessories" && "Key Features"}
+                            {formData.category === "outlet" && "Key Features"}
+                          </Label>
+                          <Button type="button" onClick={() => addNote("features")} size="sm" variant="outline">
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {formData.topNotes.map((note, index) => (
+                          {formData.features.map((note, index) => (
                             <div key={index} className="flex items-center space-x-2">
                               <Input
                                 value={note}
-                                onChange={(e) => handleNotesChange("topNotes", index, e.target.value)}
-                                placeholder="Bergamot"
+                                onChange={(e) => handleNotesChange("features", index, e.target.value)}
+                                placeholder={
+                                  formData.category === "equipment" ? "Enhanced grip technology" :
+                                  formData.category === "apparel" ? "Moisture-wicking fabric" :
+                                  formData.category === "accessories" ? "Adjustable fit" :
+                                  "Lightweight design"
+                                }
                                 className="flex-1"
                               />
-                              {formData.topNotes.length > 1 && (
+                              {formData.features.length > 1 && (
                                 <Button
                                   type="button"
-                                  onClick={() => removeNote("topNotes", index)}
+                                  onClick={() => removeNote("features", index)}
                                   size="sm"
                                   variant="outline"
                                   className="text-red-600 hover:text-red-700"
@@ -890,27 +923,37 @@ export default function AddProductPage() {
                         </div>
                       </div>
 
-                      {/* Middle Notes */}
+                      {/* Specifications */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <Label>Middle Notes</Label>
-                          <Button type="button" onClick={() => addNote("middleNotes")} size="sm" variant="outline">
+                          <Label>
+                            {formData.category === "equipment" && "Technical Specs"}
+                            {formData.category === "apparel" && "Fabric & Fit"}
+                            {formData.category === "accessories" && "Specifications"}
+                            {formData.category === "outlet" && "Specifications"}
+                          </Label>
+                          <Button type="button" onClick={() => addNote("specifications")} size="sm" variant="outline">
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {formData.middleNotes.map((note, index) => (
+                          {formData.specifications.map((note, index) => (
                             <div key={index} className="flex items-center space-x-2">
                               <Input
                                 value={note}
-                                onChange={(e) => handleNotesChange("middleNotes", index, e.target.value)}
-                                placeholder="Cedar"
+                                onChange={(e) => handleNotesChange("specifications", index, e.target.value)}
+                                placeholder={
+                                  formData.category === "equipment" ? "Weight: 500g, Dimensions: 30x20cm" :
+                                  formData.category === "apparel" ? "Athletic fit, Breathable mesh panels" :
+                                  formData.category === "accessories" ? "Universal size, One size fits all" :
+                                  "Breathable mesh"
+                                }
                                 className="flex-1"
                               />
-                              {formData.middleNotes.length > 1 && (
+                              {formData.specifications.length > 1 && (
                                 <Button
                                   type="button"
-                                  onClick={() => removeNote("middleNotes", index)}
+                                  onClick={() => removeNote("specifications", index)}
                                   size="sm"
                                   variant="outline"
                                   className="text-red-600 hover:text-red-700"
@@ -923,27 +966,37 @@ export default function AddProductPage() {
                         </div>
                       </div>
 
-                      {/* Base Notes */}
+                      {/* Materials */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <Label>Base Notes</Label>
-                          <Button type="button" onClick={() => addNote("baseNotes")} size="sm" variant="outline">
+                          <Label>
+                            {formData.category === "equipment" && "Construction Materials"}
+                            {formData.category === "apparel" && "Fabric Composition"}
+                            {formData.category === "accessories" && "Materials"}
+                            {formData.category === "outlet" && "Materials"}
+                          </Label>
+                          <Button type="button" onClick={() => addNote("materials")} size="sm" variant="outline">
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="space-y-2">
-                          {formData.baseNotes.map((note, index) => (
+                          {formData.materials.map((note, index) => (
                             <div key={index} className="flex items-center space-x-2">
                               <Input
                                 value={note}
-                                onChange={(e) => handleNotesChange("baseNotes", index, e.target.value)}
-                                placeholder="Amber"
+                                onChange={(e) => handleNotesChange("materials", index, e.target.value)}
+                                placeholder={
+                                  formData.category === "equipment" ? "Carbon fiber reinforced polymer" :
+                                  formData.category === "apparel" ? "85% Polyester, 15% Spandex" :
+                                  formData.category === "accessories" ? "Neoprene with silicone grip" :
+                                  "Premium synthetic leather"
+                                }
                                 className="flex-1"
                               />
-                              {formData.baseNotes.length > 1 && (
+                              {formData.materials.length > 1 && (
                                 <Button
                                   type="button"
-                                  onClick={() => removeNote("baseNotes", index)}
+                                  onClick={() => removeNote("materials", index)}
                                   size="sm"
                                   variant="outline"
                                   className="text-red-600 hover:text-red-700"
