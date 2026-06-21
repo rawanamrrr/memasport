@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Navigation } from "@/components/navigation"
-import { ArrowRight, Star, Shield, Truck, Sparkles, Zap, Trophy, Target, Instagram, Facebook, Package, Award, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowRight, Star, Shield, Truck, Zap, Trophy, Target, Instagram, Facebook, Award, ChevronLeft, ChevronRight } from "lucide-react"
 import { useRef, useEffect } from "react"
 
 export default function NewHome() {
@@ -65,20 +65,56 @@ export default function NewHome() {
 
   const scrollCategories = (direction: 'left' | 'right') => {
     if (categoriesRef.current) {
-      const scrollAmount = 400
-      categoriesRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
+      const container = categoriesRef.current
+      const children = Array.from(container.children) as HTMLElement[]
+      if (children.length === 0) return
+
+      const itemWidth = children[0].offsetWidth
+      const gap = 24 // gap-6
+      const scrollPosition = container.scrollLeft
+      
+      // Calculate current index based on scroll position
+      const currentIndex = Math.round(scrollPosition / (itemWidth + gap))
+      
+      // Calculate target index
+      let targetIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1
+      
+      // Clamp target index between 0 and children.length - 1
+      targetIndex = Math.max(0, Math.min(targetIndex, children.length - 1))
+      
+      // Scroll the target child into center view
+      children[targetIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
       })
     }
   }
 
   const scrollTestimonials = (direction: 'left' | 'right') => {
     if (testimonialsRef.current) {
-      const scrollAmount = 400
-      testimonialsRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
+      const container = testimonialsRef.current
+      const children = Array.from(container.children) as HTMLElement[]
+      if (children.length === 0) return
+
+      const itemWidth = children[0].offsetWidth
+      const gap = 24 // gap-6
+      const scrollPosition = container.scrollLeft
+      
+      // Calculate current index based on scroll position
+      const currentIndex = Math.round(scrollPosition / (itemWidth + gap))
+      
+      // Calculate target index
+      let targetIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1
+      
+      // Clamp target index between 0 and children.length - 1
+      targetIndex = Math.max(0, Math.min(targetIndex, children.length - 1))
+      
+      // Scroll the target child into center view
+      children[targetIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
       })
     }
   }
@@ -132,12 +168,24 @@ export default function NewHome() {
     },
   ]
 
+  const stats = [
+    { value: "50K+", label: "Happy athletes" },
+    { value: "4.9/5", label: "Average rating" },
+    { value: "100%", label: "Quality guarantee" },
+  ]
+
+  const testimonials = [
+    { name: "Ahmed M.", role: "Professional Runner", review: "The quality is outstanding. These products have genuinely improved my performance and comfort during training." },
+    { name: "Sara K.", role: "Fitness Coach", review: "I recommend Mema Sports to all my clients. The durability and design are unmatched in the market." },
+    { name: "Omar H.", role: "Basketball Player", review: "Best sports gear I've ever used. The attention to detail and performance features are incredible." }
+  ]
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navigation />
 
-      {/* Hero Section - Full Screen */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-32 md:pt-24" style={{ paddingTop: 'calc(8rem + var(--offers-banner-height, 0px))' }}>
+      {/* Hero Section */}
+      <section className="relative min-h-[92svh] flex items-center justify-center overflow-hidden pt-32 pb-16 md:pt-28 md:pb-20" style={{ paddingTop: 'calc(8rem + var(--offers-banner-height, 0px))' }}>
         {/* Video Background */}
         <div className="absolute inset-0 bg-black">
           <video
@@ -155,10 +203,8 @@ export default function NewHome() {
           >
             <source src="/mema-video.mp4" type="video/mp4" />
           </video>
-          {/* Dark overlay for better text readability */}
           <div className="absolute inset-0 bg-black/60" />
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-black/40 to-purple-900/20" />
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(249,115,22,.28),rgba(0,0,0,.44)_45%,rgba(20,184,166,.18))]" />
         </div>
 
         {/* Hero Content */}
@@ -169,72 +215,57 @@ export default function NewHome() {
             transition={{ duration: 0.8 }}
           >
             <motion.div
-              className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500/10 border border-orange-500/30 rounded-full mb-8 backdrop-blur-sm"
+              className="inline-flex items-center gap-2 rounded-full border border-orange-400/40 bg-black/35 px-4 py-2 text-sm backdrop-blur-md sm:px-5"
               whileHover={{ scale: 1.05 }}
             >
               <Trophy className="w-5 h-5 text-orange-400" />
               <span className="text-orange-300 font-semibold">Premium Athletic Gear</span>
             </motion.div>
 
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-6 leading-tight">
-              <span className="block text-white">ELEVATE YOUR</span>
+            <h1 className="mt-7 text-4xl font-black leading-[0.92] tracking-normal sm:text-6xl md:text-7xl lg:text-8xl">
+              <span className="block text-white">ELEVATE</span>
+              <span className="block text-white">YOUR</span>
               <span className="block bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
                 PERFORMANCE
               </span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-12 leading-relaxed">
-              Experience the perfect blend of innovation and performance. 
-              <span className="block mt-2">Gear that moves with you, built to last.</span>
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-gray-200 sm:text-lg md:text-xl">
+              Performance gear for training days, match days, and every session between.
+              <span className="block sm:inline"> Built tough, styled clean, ready fast.</span>
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/products">
-                <Button size="lg" className="text-lg px-8 py-6 group">
+                <Button size="lg" className="w-full min-w-52 group sm:w-auto">
                   Explore Products
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
+              <Link href="/products/outlet">
+                <Button size="lg" variant="outline" className="w-full min-w-52 border-white/25 bg-black/25 hover:bg-white/10 sm:w-auto">
+                  Shop Outlet
+                </Button>
+              </Link>
             </div>
 
-            {/* Stats */}
-            <div className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-              <div>
-                <div className="text-4xl font-black text-orange-400">50K+</div>
-                <div className="text-sm text-gray-400 mt-1">Happy Athletes</div>
-              </div>
-              <div>
-                <div className="text-4xl font-black text-orange-400">4.9★</div>
-                <div className="text-sm text-gray-400 mt-1">Average Rating</div>
-              </div>
-              <div>
-                <div className="text-4xl font-black text-orange-400">100%</div>
-                <div className="text-sm text-gray-400 mt-1">Quality Guarantee</div>
-              </div>
+            <div className="mx-auto mt-12 grid max-w-2xl grid-cols-3 overflow-hidden rounded-lg border border-white/10 bg-black/35 backdrop-blur-md">
+              {stats.map((stat) => (
+                <div key={stat.label} className="border-r border-white/10 px-3 py-4 last:border-r-0 sm:px-6">
+                  <div className="text-2xl font-black text-orange-400 sm:text-3xl">{stat.value}</div>
+                  <div className="mt-1 text-[11px] font-medium uppercase tracking-wide text-gray-300 sm:text-xs">{stat.label}</div>
+                </div>
+              ))}
             </div>
           </motion.div>
         </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center p-2">
-            <motion.div
-              className="w-1.5 h-3 bg-orange-500 rounded-full"
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </div>
-        </motion.div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gradient-to-b from-black to-gray-900">
+      <section className="border-y border-white/10 bg-zinc-950 py-14">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature, i) => (
               <motion.div
                 key={i}
@@ -242,13 +273,13 @@ export default function NewHome() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 viewport={{ once: true }}
-                className="text-center group"
+                className="group rounded-lg border border-white/10 bg-white/[0.03] p-6 text-left transition-colors hover:border-orange-400/40 hover:bg-white/[0.06]"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <feature.icon className="w-8 h-8 text-white" />
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-orange-500/15 text-orange-300 ring-1 ring-orange-400/25">
+                  <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-400">{feature.desc}</p>
+                <h3 className="text-base font-bold text-white">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-400">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -256,18 +287,18 @@ export default function NewHome() {
       </section>
 
       {/* Categories Section */}
-      <section className="py-24 bg-gray-900">
+      <section className="bg-zinc-900 py-20 md:py-24">
         <div className="container mx-auto px-6 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
-            className="text-center mb-16">
-            <h2 className="text-4xl md:text-6xl font-black text-white mb-4">
+            className="mx-auto mb-12 max-w-3xl text-center">
+            <h2 className="text-3xl font-black text-white sm:text-4xl md:text-5xl">
               Shop by <span className="text-orange-500">Category</span>
             </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-gray-400 md:text-lg">
               Find exactly what you need for your sport
             </p>
           </motion.div>
@@ -276,8 +307,8 @@ export default function NewHome() {
             {/* Left Arrow */}
             <button
               onClick={() => scrollCategories('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
-              aria-label="Scroll left"
+              className="absolute left-0 top-1/2 z-10 hidden h-11 w-11 -translate-x-4 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-all duration-300 hover:bg-white/15 md:flex"
+              aria-label="Scroll categories left"
             >
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
@@ -285,8 +316,8 @@ export default function NewHome() {
             {/* Right Arrow */}
             <button
               onClick={() => scrollCategories('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
-              aria-label="Scroll right"
+              className="absolute right-0 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 translate-x-4 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-all duration-300 hover:bg-white/15 md:flex"
+              aria-label="Scroll categories right"
             >
               <ChevronRight className="w-6 h-6 text-white" />
             </button>
@@ -294,7 +325,7 @@ export default function NewHome() {
             {/* Scrollable Categories */}
             <div
               ref={categoriesRef}
-              className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth touch-pan-x"
+              className="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden scroll-smooth scroll-px-6 touch-pan-x md:gap-6"
               style={{ 
                 scrollbarWidth: 'none', 
                 msOverflowStyle: 'none', 
@@ -309,11 +340,11 @@ export default function NewHome() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   viewport={{ once: true }}
-                  className="flex-shrink-0 w-80"
+                  className="w-[82vw] flex-shrink-0 snap-center sm:w-80"
                 >
                   <Link href={cat.href} className="group block">
-                    <Card className="overflow-hidden border-white/10 bg-black/40 hover:border-orange-500/50 transition-all duration-300">
-                      <div className="relative h-80 overflow-hidden">
+                    <Card className="overflow-hidden rounded-lg border-white/10 bg-black/40 transition-all duration-300 hover:border-orange-500/50">
+                      <div className="relative h-72 overflow-hidden">
                         <Image
                           src={cat.img}
                           alt={cat.title}
@@ -324,7 +355,7 @@ export default function NewHome() {
                         <div className="absolute bottom-0 left-0 right-0 p-6">
                           <h3 className="text-2xl font-bold text-white mb-2">{cat.title}</h3>
                           <p className="text-sm text-gray-300">{cat.desc}</p>
-                          <div className="mt-4 inline-flex items-center text-orange-400 font-semibold">
+                          <div className="mt-4 inline-flex items-center text-sm font-semibold text-orange-400">
                             Shop Now
                             <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform" />
                           </div>
@@ -340,64 +371,67 @@ export default function NewHome() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-orange-600 via-orange-500 to-orange-600 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px)' }} />
-        </div>
-        <div className="container mx-auto px-6 md:px-8 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <Zap className="w-16 h-16 text-white mx-auto mb-6" />
-              <h2 className="text-4xl md:text-6xl font-black text-white mb-6">
-                Ready to Elevate Your Game?
-              </h2>
-              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-                Join thousands of athletes who trust Mema Sports for their performance needs
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/products">
-                  <Button size="lg" variant="outline" className="bg-white text-orange-600 hover:bg-gray-100 border-0 text-lg px-8 py-6">
-                    Shop Now
-                  </Button>
-                </Link>
-                <Link href="/contact">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-6">
-                    Contact Us
-                  </Button>
-                </Link>
-              </div>
-            </motion.div>
+      <section className="bg-black px-4 py-10 md:px-8 md:py-14">
+        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2.75rem] border border-orange-300/25 bg-gradient-to-br from-orange-600 via-orange-500 to-teal-600 py-16 shadow-2xl shadow-orange-950/30 md:rounded-[5rem] md:py-24">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px)' }} />
+          </div>
+          <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/25" />
+          <div className="container relative z-10 mx-auto px-6 md:px-8">
+            <div className="max-w-4xl mx-auto text-center">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <Zap className="w-16 h-16 text-white mx-auto mb-6" />
+                <h2 className="mb-5 text-3xl font-black text-white sm:text-4xl md:text-5xl">
+                  Ready to Elevate Your Game?
+                </h2>
+                <p className="mx-auto mb-8 max-w-2xl text-base leading-7 text-white/90 md:text-lg">
+                  Join thousands of athletes who trust Mema Sports for their performance needs
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link href="/products">
+                    <Button size="lg" variant="outline" className="border-0 bg-white text-orange-600 hover:bg-gray-100">
+                      Shop Now
+                    </Button>
+                  </Link>
+                  <Link href="/contact">
+                    <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                      Contact Us
+                    </Button>
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 bg-black">
+      <section className="bg-black py-20 md:py-24">
         <div className="container mx-auto px-6 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="mb-12 text-center"
           >
-            <h2 className="text-4xl md:text-6xl font-black text-white mb-4">
+            <h2 className="mb-4 text-3xl font-black text-white sm:text-4xl md:text-5xl">
               What Athletes <span className="text-orange-500">Say</span>
             </h2>
-            <p className="text-xl text-gray-400">Real reviews from real athletes</p>
+            <p className="text-base text-gray-400 md:text-lg">Real reviews from real athletes</p>
           </motion.div>
 
           <div className="relative">
             {/* Left Arrow */}
             <button
               onClick={() => scrollTestimonials('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
-              aria-label="Scroll left"
+              className="absolute left-0 top-1/2 z-10 hidden h-11 w-11 -translate-x-4 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/20 md:flex"
+              aria-label="Scroll testimonials left"
             >
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
@@ -405,8 +439,8 @@ export default function NewHome() {
             {/* Right Arrow */}
             <button
               onClick={() => scrollTestimonials('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
-              aria-label="Scroll right"
+              className="absolute right-0 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 translate-x-4 items-center justify-center rounded-full border border-white/15 bg-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/20 md:flex"
+              aria-label="Scroll testimonials right"
             >
               <ChevronRight className="w-6 h-6 text-white" />
             </button>
@@ -414,7 +448,7 @@ export default function NewHome() {
             {/* Scrollable Testimonials */}
             <div
               ref={testimonialsRef}
-              className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth touch-pan-x"
+              className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth touch-pan-x snap-x snap-mandatory scroll-px-6"
               style={{ 
                 scrollbarWidth: 'none', 
                 msOverflowStyle: 'none', 
@@ -422,21 +456,17 @@ export default function NewHome() {
                 touchAction: 'pan-x'
               }}
             >
-              {[
-                { name: "Ahmed M.", role: "Professional Runner", review: "The quality is outstanding. These products have genuinely improved my performance and comfort during training." },
-                { name: "Sara K.", role: "Fitness Coach", review: "I recommend Mema Sports to all my clients. The durability and design are unmatched in the market." },
-                { name: "Omar H.", role: "Basketball Player", review: "Best sports gear I've ever used. The attention to detail and performance features are incredible." }
-              ].map((testimonial, i) => (
+              {testimonials.map((testimonial, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   viewport={{ once: true }}
-                  className="flex-shrink-0 w-96"
+                  className="flex-shrink-0 w-[80vw] sm:w-96 snap-center"
                 >
-                  <Card className="bg-white/5 border-white/10 hover:border-orange-500/30 transition-all duration-300 h-full">
-                    <CardContent className="p-8">
+                  <Card className="h-full rounded-lg border-white/10 bg-white/5 transition-all duration-300 hover:border-orange-500/30">
+                    <CardContent className="p-6 sm:p-8">
                       <div className="flex gap-1 mb-4">
                         {[...Array(5)].map((_, j) => (
                           <Star key={j} className="w-5 h-5 fill-orange-500 text-orange-500" />
@@ -462,16 +492,16 @@ export default function NewHome() {
       </section>
 
       {/* Newsletter */}
-      <section className="pb-28">
+      <section className="pb-24">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-10 md:p-14 backdrop-blur-xl">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8 md:p-10">
             <h3 className="text-2xl md:text-4xl font-black tracking-tight">Join the club</h3>
             <p className="text-white/70 mt-2">Get early access to drops, exclusive offers and training tips.</p>
             <form className="mt-6 flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="w-full sm:flex-1 rounded-2xl bg-black/60 border border-white/10 px-4 py-3 outline-none focus:ring-2 ring-orange-500/40 text-white placeholder-white/40"
+                className="w-full rounded-md border border-white/10 bg-black/60 px-4 py-3 text-white outline-none ring-orange-500/40 placeholder-white/40 focus:ring-2 sm:flex-1"
               />
               <Button className="shrink-0">Subscribe</Button>
             </form>
@@ -486,7 +516,7 @@ export default function NewHome() {
             {/* Brand */}
             <div className="space-y-4">
               <Image
-                src="/mema-sports-icon-black.png"
+                src="/mema-sports-icon-white.png"
                 alt="Mema Sports"
                 width={150}
                 height={60}

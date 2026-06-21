@@ -11,7 +11,13 @@ import { Menu, X, ShoppingCart, User, Heart, LogOut, Settings, ChevronDown } fro
 import { useAuth } from "@/lib/auth-context"
 import { useCart } from "@/lib/cart-context"
 import { useFavorites } from "@/lib/favorites-context"
-import { OffersBanner } from "@/components/offers-banner"
+
+const productLinks = [
+  { href: "/products/equipment", label: "Equipment" },
+  { href: "/products/apparel", label: "Apparel" },
+  { href: "/products/accessories", label: "Accessories" },
+  { href: "/products/outlet", label: "Outlet" },
+]
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
@@ -32,8 +38,8 @@ export function Navigation() {
 
     const handleScroll = () => {
       const scrollPosition = window.scrollY
-      // Make header transparent for first 100vh (video section), then add background
-      setIsScrolled(scrollPosition > window.innerHeight * 0.8)
+      // Show background frame the second the user starts scrolling
+      setIsScrolled(scrollPosition > 10)
     }
 
     window.addEventListener('scroll', handleScroll)
@@ -239,32 +245,17 @@ export function Navigation() {
                     <div className={`absolute bottom-0 left-0 right-0 h-1 rounded-full ${getActiveIndicatorColor()}`} />
                   )}
                 </Link>
-                <div className="absolute top-full left-0 mt-3 w-52 bg-gradient-to-br from-gray-900 to-black border border-white/10 shadow-2xl rounded-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 backdrop-blur-xl">
+                <div className="absolute top-full left-0 mt-3 w-56 rounded-lg border border-white/10 bg-zinc-950/95 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 backdrop-blur-xl">
                   <div className="py-3">
-                    <Link
-                      href="/products/men"
-                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
-                    >
-                      For Him
-                    </Link>
-                    <Link
-                      href="/products/women"
-                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
-                    >
-                      For Her
-                    </Link>
-                    <Link
-                      href="/products/packages"
-                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
-                    >
-                      Bundles
-                    </Link>
-                    <Link
-                      href="/products/outlet"
-                      className="block px-5 py-3 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-xl mx-2 font-medium"
-                    >
-                      Outlet
-                    </Link>
+                    {productLinks.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="mx-2 block rounded-md px-4 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -467,7 +458,7 @@ export function Navigation() {
                           e.stopPropagation()
                           setProductsOpen(!productsOpen)
                         }}
-                        className={`p-2 transition-colors ${!isHomePage || isScrolled ? 'text-gray-600 hover:text-black' : 'text-white/60 hover:text-white'
+                        className={`p-2 transition-colors ${!isHomePage || isScrolled ? 'text-white/70 hover:text-white' : 'text-white/60 hover:text-white'
                           }`}
                       >
                         <ChevronDown className={`h-4 w-4 transition-transform ${productsOpen ? 'rotate-180' : ''}`} />
@@ -484,62 +475,23 @@ export function Navigation() {
                           transition={{ duration: 0.2 }}
                           className="ml-4 space-y-1 overflow-hidden"
                         >
-                          <Link
-                            href="/products/men"
-                            className={`relative block px-4 py-2 text-sm transition-colors rounded-lg ${!isHomePage || isScrolled
-                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/men") ? "text-orange-600" : ""}`
-                                : `text-white/70 hover:text-white ${isActiveLink("/products/men") ? "text-white" : ""}`
-                              }`}
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {isActiveLink("/products/men") && (
-                              <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-orange-50' : 'bg-white/20'
-                                }`} />
-                            )}
-                            <span className="relative z-10">For Him</span>
-                          </Link>
-                          <Link
-                            href="/products/women"
-                            className={`relative block px-4 py-2 text-sm transition-colors rounded-lg ${!isHomePage || isScrolled
-                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/women") ? "text-orange-600" : ""}`
-                                : `text-white/70 hover:text-white ${isActiveLink("/products/women") ? "text-white" : ""}`
-                              }`}
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {isActiveLink("/products/women") && (
-                              <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-orange-50' : 'bg-white/20'
-                                }`} />
-                            )}
-                            <span className="relative z-10">For Her</span>
-                          </Link>
-                          <Link
-                            href="/products/packages"
-                            className={`relative block px-4 py-2 text-sm transition-colors rounded-lg ${!isHomePage || isScrolled
-                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/packages") ? "text-orange-600" : ""}`
-                                : `text-white/70 hover:text-white ${isActiveLink("/products/packages") ? "text-white" : ""}`
-                              }`}
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {isActiveLink("/products/packages") && (
-                              <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-orange-50' : 'bg-white/20'
-                                }`} />
-                            )}
-                            <span className="relative z-10">Bundles</span>
-                          </Link>
-                          <Link
-                            href="/products/outlet"
-                            className={`relative block px-4 py-2 text-sm transition-colors rounded-lg ${!isHomePage || isScrolled
-                                ? `text-gray-600 hover:text-black ${isActiveLink("/products/outlet") ? "text-orange-600" : ""}`
-                                : `text-white/70 hover:text-white ${isActiveLink("/products/outlet") ? "text-white" : ""}`
-                              }`}
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {isActiveLink("/products/outlet") && (
-                              <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-orange-50' : 'bg-white/20'
-                                }`} />
-                            )}
-                            <span className="relative z-10">Outlet</span>
-                          </Link>
+                          {productLinks.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className={`relative block rounded-lg px-4 py-2 text-sm transition-colors ${!isHomePage || isScrolled
+                                  ? `text-white/75 hover:text-white ${isActiveLink(item.href) ? "text-orange-400" : ""}`
+                                  : `text-white/70 hover:text-white ${isActiveLink(item.href) ? "text-white" : ""}`
+                                }`}
+                              onClick={() => setIsOpen(false)}
+                            >
+                              {isActiveLink(item.href) && (
+                                <div className={`absolute inset-0 rounded-lg ${!isHomePage || isScrolled ? 'bg-orange-500/10' : 'bg-white/20'
+                                  }`} />
+                              )}
+                              <span className="relative z-10">{item.label}</span>
+                            </Link>
+                          ))}
                         </motion.div>
                       )}
                     </AnimatePresence>
