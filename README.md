@@ -1,6 +1,6 @@
 # Mema Sports - Premium Sports Equipment & Sportswear
 
-A luxury e-commerce website for premium sports equipment and athletic wear, built with Next.js 14, TypeScript, and MongoDB.
+A luxury e-commerce website for premium sports equipment and athletic wear, built with Next.js 14, TypeScript, and PostgreSQL (Supabase).
 
 ## 🏆 Features
 
@@ -20,7 +20,7 @@ A luxury e-commerce website for premium sports equipment and athletic wear, buil
 ### Prerequisites
 
 - Node.js 18+ 
-- MongoDB database
+- A PostgreSQL database (e.g. a free [Supabase](https://supabase.com) project)
 - npm or yarn
 
 ### Installation
@@ -37,24 +37,24 @@ A luxury e-commerce website for premium sports equipment and athletic wear, buil
    ```
 
 3. **Environment Setup**
-   Create a `.env.local` file in the root directory:
+   Create a `.env.local` file in the root directory (see `.env.example`):
    ```env
-   MONGODB_URI=your_mongodb_connection_string
+   DATABASE_URL=postgresql://user:password@host:5432/postgres
    JWT_SECRET=your_jwt_secret_key
-   NEXTAUTH_SECRET=your_nextauth_secret
-   NEXTAUTH_URL=http://localhost:3000
-   
+   NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
    # Email configuration (optional)
-   EMAIL_HOST=your_smtp_host
+   EMAIL_HOST=smtp.gmail.com
    EMAIL_PORT=587
    EMAIL_USER=your_email
-   EMAIL_PASS=your_email_password
+   EMAIL_PASSWORD=your_email_app_password
+   EMAIL_FROM=noreply@memasports.com
    ```
 
 4. **Database Setup**
+   Run `lib/schema.sql` against your PostgreSQL/Supabase database to create all tables:
    ```bash
-   npm run setup-db
-   npm run seed-db
+   psql "$DATABASE_URL" -f lib/schema.sql
    ```
 
 5. **Start development server**
@@ -82,7 +82,7 @@ A luxury e-commerce website for premium sports equipment and athletic wear, buil
 
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **Styling**: Tailwind CSS with custom animations
-- **Database**: MongoDB with Mongoose
+- **Database**: PostgreSQL (Supabase) via `pg`
 - **Authentication**: JWT-based auth system
 - **State Management**: React Context API
 - **Animations**: Framer Motion
@@ -184,65 +184,16 @@ mema-sports/
 
 ### Database Setup for Production
 
-1. **Set up MongoDB Atlas** or your preferred MongoDB hosting
-2. **Update MONGODB_URI** in your environment variables
-3. **Run database setup**
+1. **Set up a [Supabase](https://supabase.com) project** (or any managed PostgreSQL)
+2. **Update `DATABASE_URL`** in your environment variables (use the connection pooler string for serverless/Vercel deployments)
+3. **Run the schema**
    ```bash
-   npm run setup-db
-   npm run seed-db
+   psql "$DATABASE_URL" -f lib/schema.sql
    ```
 
 ## 📊 Database Schema
 
-### Products Collection
-```javascript
-{
-  id: string,
-  name: string,
-  description: string,
-  price: number,
-  sizes: Array<{size: string, volume: string, originalPrice: number, discountedPrice: number}>,
-  images: string[],
-  rating: number,
-  reviews: number,
-  specifications: {
-    material: string[],
-    features: string[],
-    dimensions: string[]
-  },
-  category: 'equipment' | 'apparel' | 'accessories' | 'outlet',
-  isNew: boolean,
-  isBestseller: boolean,
-  isActive: boolean
-}
-```
-
-### Users Collection
-```javascript
-{
-  email: string,
-  password: string,
-  name: string,
-  role: 'admin' | 'user',
-  favorites: string[],
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### Orders Collection
-```javascript
-{
-  userId: string,
-  items: Array<OrderItem>,
-  total: number,
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled',
-  shippingAddress: Address,
-  paymentMethod: 'cod' | 'visa' | 'mastercard',
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+The full schema lives in [`lib/schema.sql`](lib/schema.sql) and includes `users`, `products`, `product_sizes`, `gift_package_sizes`, `orders`, `order_items`, `reviews`, `favorites`, `discount_codes`, and `contact_messages` tables.
 
 ## 🔧 Development
 
@@ -252,9 +203,8 @@ mema-sports/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run setup-db` - Set up database collections and indexes
-- `npm run seed-db` - Seed database with sample data
-- `npm run deploy` - Full deployment setup
+- `npm run setup-offers` - Set up the offers table
+- `npm run setup-discount-codes` - Set up/update discount codes table
 
 ### Code Style
 

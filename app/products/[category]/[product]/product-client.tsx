@@ -35,8 +35,7 @@ interface ProductDetail {
   images: string[]
   rating: number
   reviews: number
-  notes: { top: string[]; middle: string[]; base: string[] }
-  category: "men" | "women" | "packages" | "outlet"
+  category: "equipment" | "apparel" | "accessories" | "outlet"
   isNew?: boolean
   isBestseller?: boolean
   isActive?: boolean
@@ -47,11 +46,13 @@ interface ProductDetail {
 }
 
 interface Review {
-  _id: string
+  id?: string
+  _id?: string
   productId: string
   originalProductId?: string
   userId: string
-  userName: string
+  userName?: string
+  customerName?: string
   rating: number
   comment: string
   orderId: string
@@ -59,16 +60,16 @@ interface Review {
 }
 
 const categoryTitles = {
-  men: "For Him",
-  women: "For Her",
-  packages: "Bundles",
+  equipment: "Equipment",
+  apparel: "Apparel",
+  accessories: "Accessories",
   outlet: "Outlet",
 }
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ initialProduct }: { initialProduct?: ProductDetail | null }) {
   const { category, product: productId } = useParams() as { category: string; product: string }
-  const [product, setProduct] = useState<ProductDetail | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [product, setProduct] = useState<ProductDetail | null>(initialProduct ?? null)
+  const [loading, setLoading] = useState(!initialProduct)
   const [selectedSize, setSelectedSize] = useState<number>(0)
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
@@ -245,7 +246,12 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (category && productId) {
-      fetchProduct()
+      if (initialProduct) {
+        // Product is already server-rendered; only load reviews + related items.
+        fetchReviews(getBaseProductId(initialProduct.id))
+      } else {
+        fetchProduct()
+      }
       fetchRelatedProducts()
     }
   }, [category, productId])
@@ -264,45 +270,44 @@ export default function ProductDetailPage() {
     return id;
   }
 
+  const fetchReviews = async (baseProductId: string) => {
+    try {
+      const reviewsResponse = await fetch(`/api/reviews/product/${baseProductId}`)
+      if (reviewsResponse.ok) {
+        const reviewsData = await reviewsResponse.json()
+        setReviews(reviewsData.reviews || [])
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error)
+    }
+  }
+
   const fetchProduct = async () => {
     try {
       const response = await fetch(`/api/products/${category}/${productId}`)
       if (response.ok) {
         const data = await response.json()
         setProduct(data)
-
-        // Get base product ID (without size suffix)
-        const baseProductId = getBaseProductId(data.id)
-        console.log("Product data:", data)
-        console.log("Product ID from API:", data.id)
-        console.log("URL product ID:", productId)
-        console.log("Fetching reviews for base product ID:", baseProductId)
-        
-        // Fetch reviews for the BASE product ID using the correct endpoint
-        const reviewsResponse = await fetch(`/api/reviews/product/${baseProductId}`)
-        if (reviewsResponse.ok) {
-          const reviewsData = await reviewsResponse.json()
-          console.log("Fetched reviews:", reviewsData.reviews?.length || 0)
-          setReviews(reviewsData.reviews || [])
-        } else {
-          console.error("Failed to fetch reviews:", await reviewsResponse.text())
-        }
+        // Render the page immediately; reviews load independently so they
+        // never block the product details from showing.
+        setLoading(false)
+        fetchReviews(getBaseProductId(data.id))
+        return
       }
     } catch (error) {
       console.error("Error fetching product:", error)
-    } finally {
-      setLoading(false)
     }
+    setLoading(false)
   }
 
   if (loading) {
     return (
-      <div className="page-shell">
+      <div className="min-h-screen">
         <Navigation />
-        <div className="pt-28 md:pt-24 flex items-center justify-center px-4 text-white">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-sm sm:text-base text-white/70">Loading products...</p>
+        <div className="section-container pt-32 pb-16 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-orange-500 mx-auto"></div>
+            <p className="muted-text text-sm sm:text-base">Loading products...</p>
           </div>
         </div>
       </div>
@@ -311,13 +316,15 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="page-shell">
+      <div className="min-h-screen">
         <Navigation />
-        <div className="pt-28 md:pt-24 flex items-center justify-center px-4 text-white">
-          <div className="text-center space-y-4">
-            <h1 className="text-xl sm:text-2xl font-light">Product not found</h1>
+        <div className="section-container pt-32 pb-16 flex items-center justify-center">
+          <div className="text-center space-y-6">
+            <h1 className="section-title text-2xl sm:text-3xl">Product not found</h1>
             <Link href="/products">
-              <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 text-sm sm:text-base px-4 py-2">Browse All Products</Button>
+              <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 rounded-xl shadow-orange-500/30 shadow-lg">
+                Browse All Products
+              </Button>
             </Link>
           </div>
         </div>
@@ -328,12 +335,14 @@ export default function ProductDetailPage() {
   const selectedPrice = product.sizes[selectedSize || 0]?.discountedPrice || product.sizes[selectedSize || 0]?.originalPrice || 0
 
   return (
-    <div className="page-shell">
+    <div className="min-h-screen">
       <Navigation />
 
       {/* Product Detail */}
-      <section className="section-padding pt-28 md:pt-24 pb-20 sm:pb-16">
-        <div className="section-container">
+      <section className="section-padding pt-28 md:pt-24 pb-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 via-transparent to-transparent" />
+        <div className="absolute -inset-32 bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.12),_transparent_65%)] opacity-70" />
+        <div className="section-container relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -342,7 +351,7 @@ export default function ProductDetailPage() {
           >
             <Link
               href={`/products/${category}`}
-              className="inline-flex items-center text-white/70 hover:text-white transition-colors font-medium text-sm sm:text-base"
+              className="inline-flex items-center muted-text hover:text-white transition-colors font-medium text-sm sm:text-base"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to {categoryTitles[category as keyof typeof categoryTitles]} Collection
@@ -357,9 +366,9 @@ export default function ProductDetailPage() {
               transition={{ duration: 0.8 }}
               className="space-y-4 lg:space-y-6 order-1"
             >
-              <div className="relative rounded-2xl overflow-hidden glass-panel">
-                <div 
-                  className="w-full h-64 sm:h-80 lg:h-[500px] relative select-none"
+              <div className="relative rounded-3xl overflow-hidden bg-white/5 backdrop-blur-2xl shadow-xl">
+                <div
+                  className="relative w-full select-none"
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                   onWheel={handleWheel}
@@ -373,38 +382,40 @@ export default function ProductDetailPage() {
                   <Image
                     src={product.images[selectedImage] || "/placeholder.svg"}
                     alt={product.name}
-                    fill
-                    className={`object-contain transition-all duration-300 ${isHovered ? 'scale-105' : 'scale-100'}`}
+                    width={1200}
+                    height={1200}
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className={`w-full h-auto max-h-[80vh] object-contain transition-all duration-300 ${isHovered ? 'scale-105' : 'scale-100'}`}
                   />
                   {product.images?.length > 1 && (
                     <>
                       <button
                         type="button"
                         onClick={goToPrevImage}
-                        className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full bg-black/60 backdrop-blur shadow hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full bg-white/90 backdrop-blur shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-black"
                         aria-label="Previous image"
                       >
-                        <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                        <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" />
                       </button>
                       <button
                         type="button"
                         onClick={goToNextImage}
-                        className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full bg-black/60 backdrop-blur shadow hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full bg-white/90 backdrop-blur shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-black"
                         aria-label="Next image"
                       >
-                        <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                        <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" />
                       </button>
                     </>
                   )}
                 </div>
                 <div className="absolute top-3 left-3 lg:top-4 lg:left-4 space-y-2">
                   {product.isBestseller && (
-                    <Badge className="bg-orange-500/90 text-white px-2 py-1 lg:px-3 lg:py-1 rounded-md font-medium text-xs lg:text-sm">
+                    <Badge className="bg-gradient-to-r from-amber-600 to-amber-800 text-white px-2 py-1 lg:px-3 lg:py-1 rounded-md font-medium text-xs lg:text-sm">
                       Bestseller
                     </Badge>
                   )}
                   {product.isNew && (
-                    <Badge className="bg-purple-500/90 text-white px-2 py-1 lg:px-3 lg:py-1 rounded-md font-medium text-xs lg:text-sm">
+                    <Badge className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-2 py-1 lg:px-3 lg:py-1 rounded-md font-medium text-xs lg:text-sm">
                       New Arrival
                     </Badge>
                   )}
@@ -419,10 +430,10 @@ export default function ProductDetailPage() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border transition-all duration-200 ${
+                    className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border transition-all duration-200 ${
                       selectedImage === index 
-                        ? "border-2 border-orange-500 shadow-lg" 
-                        : "border-white/10 hover:border-white/40"
+                        ? "border-orange-500 shadow-orange-500/30 shadow-lg" 
+                        : "border-white/10 hover:border-white/30"
                     }`}
                   >
                     <Image
@@ -445,41 +456,41 @@ export default function ProductDetailPage() {
               className="space-y-6 lg:space-y-8 order-2"
             >
               <div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 space-y-3 sm:space-y-0">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-3 sm:gap-4">
                   <div className="flex-1">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight mb-2">{product.name}</h1>
-                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight mb-2 text-white">{product.name}</h1>
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-2">
                       <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
                             className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                              i < Math.floor(product.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                              i < Math.floor(product.rating) ? "fill-yellow-400 text-yellow-400" : "text-white/20"
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-sm sm:text-base text-gray-600">
-                        ({product.rating}) • {product.reviews} reviews
+                      <span className="text-sm sm:text-base text-gray-400">
+                        ({product.rating}) â€¢ {product.reviews} reviews
                       </span>
                     </div>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-light text-left">
+                  <div className="text-2xl sm:text-3xl font-bold text-left">
                     {(() => {
                       if (product.isGiftPackage && product.packagePrice) {
                         const packagePrice = product.packagePrice;
                         const packageOriginalPrice = product.packageOriginalPrice || 0;
-                        
+
                         if (packageOriginalPrice > 0 && packagePrice < packageOriginalPrice) {
                           return (
                             <div className="text-left space-y-2">
                               <div className="flex flex-col items-start">
-                                <span className="text-gray-600 text-base sm:text-lg">Package Price:</span>
+                                <span className="text-gray-400 text-base sm:text-lg">Package Price:</span>
                                 <div className="flex items-center space-x-3">
-                                  <span className="line-through text-gray-400 text-lg sm:text-xl">EGP{packageOriginalPrice}</span>
-                                  <span className="text-xl sm:text-2xl font-bold text-red-600">EGP{packagePrice}</span>
+                                  <span className="line-through text-gray-500 text-lg sm:text-xl">EGP{packageOriginalPrice}</span>
+                                  <span className="text-xl sm:text-2xl font-bold text-orange-400">EGP{packagePrice}</span>
                                 </div>
-                                <span className="text-xs sm:text-sm text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
+                                <span className="text-xs sm:text-sm text-green-400 font-medium bg-green-500/10 px-2 py-1 rounded-full border border-green-500/20">
                                   Save EGP{(packageOriginalPrice - packagePrice).toFixed(0)}
                                 </span>
                               </div>
@@ -488,8 +499,8 @@ export default function ProductDetailPage() {
                         } else {
                           return (
                             <div className="text-left">
-                              <span className="text-gray-600 text-base sm:text-lg">Package Price:</span>
-                              <span className="text-xl sm:text-2xl font-bold ml-2 text-green-600">
+                              <span className="text-gray-400 text-base sm:text-lg">Package Price:</span>
+                              <span className="text-xl sm:text-2xl font-bold ml-2 text-orange-400">
                                 EGP{packagePrice}
                               </span>
                             </div>
@@ -499,46 +510,46 @@ export default function ProductDetailPage() {
                         const selectedSizeObj = product.sizes[selectedSize] || product.sizes[0];
                         const selectedPrice = selectedSizeObj?.discountedPrice || selectedSizeObj?.originalPrice || 0;
                         const originalPrice = selectedSizeObj?.originalPrice || 0;
-                        
+
                         if (originalPrice > 0 && selectedPrice < originalPrice) {
                           return (
                             <div className="flex items-center space-x-3">
-                              <span className="line-through text-gray-400 text-lg sm:text-2xl">EGP{originalPrice}</span>
-                              <span className="text-red-600 font-bold text-xl sm:text-2xl">EGP{selectedPrice}</span>
+                              <span className="line-through text-gray-500 text-lg sm:text-2xl">EGP{originalPrice}</span>
+                              <span className="text-orange-400 font-bold text-xl sm:text-2xl">EGP{selectedPrice}</span>
                             </div>
                           );
                         } else {
-                          return <span className="text-xl sm:text-2xl">EGP{selectedPrice}</span>;
+                          return <span className="text-xl sm:text-2xl text-white">EGP{selectedPrice}</span>;
                         }
                       }
                     })()}
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <p className={`text-gray-700 text-sm sm:text-base leading-relaxed ${showFullDescription ? '' : 'line-clamp-3'}`}>
+                <div className="mb-2">
+                  <p className={`text-gray-300 text-sm sm:text-base leading-relaxed ${showFullDescription ? '' : 'line-clamp-3'}`}>
                     {product.longDescription}
                   </p>
                   {!showFullDescription && (
-                    <button 
+                    <button
                       onClick={() => setShowFullDescription(true)}
-                      className="text-sm font-medium text-black mt-3 flex items-center hover:text-gray-700 transition-colors w-full sm:w-auto justify-center sm:justify-start"
+                      className="text-sm font-medium text-orange-400 mt-3 flex items-center hover:text-orange-300 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                     >
                       Read more <ChevronDown className="ml-1 h-4 w-4" />
                     </button>
                   )}
-                  
+
                   {/* Gift Package Info */}
                   {product.isGiftPackage && product.giftPackageSizes && (
-                    <div className="mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <div className="mt-4 p-3 sm:p-4 bg-white/5 border border-white/10 rounded-lg">
                       <div className="flex items-center space-x-2 mb-3">
-                        <Package className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
-                        <h4 className="font-medium text-gray-900 text-sm sm:text-base">Gift Package Includes:</h4>
+                        <Package className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                        <h4 className="font-medium text-white text-sm sm:text-base">Gift Package Includes:</h4>
                       </div>
                       <div className="grid grid-cols-1 gap-2">
                         {product.giftPackageSizes.map((size, index) => (
-                          <div key={index} className="text-xs sm:text-sm text-gray-600">
-                            • {size.size} ({size.volume}) - {size.productOptions?.length || 0} product options
+                          <div key={index} className="text-xs sm:text-sm text-gray-400">
+                            â€¢ {size.size} ({size.volume}) - {size.productOptions?.length || 0} product options
                           </div>
                         ))}
                       </div>
@@ -550,91 +561,212 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="bg-white/10" />
 
-              {/* Fragrance Notes */}
-              {product.notes && (
-                <div>
-                  <h3 className="text-base sm:text-lg font-medium mb-4 text-gray-900">Fragrance Notes</h3>
-                  <div className="space-y-4">
-                    <div className="border-l-2 border-rose-400 pl-3 py-1">
-                      <span className="text-xs sm:text-sm font-medium text-gray-900">Top Notes:</span>
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
-                        {product.notes.top.map((note, idx) => (
-                          <span key={idx} className="bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 text-xs font-medium px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-rose-200 shadow-sm">
-                            {note}
-                          </span>
-                        ))}
+              {/* Desktop Buy Box */}
+              <div className="hidden md:block rounded-2xl border border-white/10 bg-white/5 p-5 lg:p-6 space-y-5">
+                {product.isGiftPackage ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/15 text-orange-300 ring-1 ring-orange-400/25">
+                        <Package className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">Gift Package</p>
+                        <p className="text-xs text-gray-400">Build your own bundle</p>
                       </div>
                     </div>
-                    <div className="border-l-2 border-violet-500 pl-3 py-1">
-                      <span className="text-xs sm:text-sm font-medium text-gray-900">Middle Notes:</span>
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
-                        {product.notes.middle.map((note, idx) => (
-                          <span key={idx} className="bg-gradient-to-r from-violet-50 to-purple-100 text-violet-700 text-xs font-medium px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-violet-200 shadow-sm">
-                            {note}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="border-l-2 border-indigo-600 pl-3 py-1">
-                      <span className="text-xs sm:text-sm font-medium text-gray-900">Base Notes:</span>
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
-                        {product.notes.base.map((note, idx) => (
-                          <span key={idx} className="bg-gradient-to-r from-indigo-50 to-purple-100 text-indigo-800 text-xs font-medium px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-indigo-200 shadow-sm">
-                            {note}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    <Button
+                      onClick={() => setShowGiftPackageSelector(true)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-5 py-5"
+                    >
+                      <Package className="mr-2 h-4 w-4" />
+                      Customize Package
+                    </Button>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <>
+                    {/* Size Selection */}
+                    <div>
+                      <h3 className="text-sm font-medium mb-3 text-white">
+                        Size: <span className="text-orange-400">{product.sizes[selectedSize]?.size}</span>
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {product.sizes.map((size, index) => (
+                          <motion.button
+                            key={index}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setSelectedSize(index)}
+                            className={`px-4 py-2 border rounded-lg text-center transition-all text-sm font-medium ${
+                              selectedSize === index
+                                ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                                : 'border-white/10 hover:border-white/30 bg-white/5 text-gray-200'
+                            }`}
+                          >
+                            {size.size}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
 
-              <Separator />
+                    <div className="flex items-center justify-between gap-6">
+                      {/* Quantity */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-white">Quantity</span>
+                        <div className="flex items-center gap-2">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            className="w-8 h-8 border border-white/10 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors disabled:opacity-40"
+                            disabled={quantity <= 1}
+                          >
+                            <span className="text-gray-300">-</span>
+                          </motion.button>
+                          <span className="w-8 text-center font-medium text-white">{quantity}</span>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setQuantity(quantity + 1)}
+                            className="w-8 h-8 border border-white/10 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+                          >
+                            <span className="text-gray-300">+</span>
+                          </motion.button>
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="text-xl font-bold text-white">
+                        {(() => {
+                          const selectedSizeObj = product.sizes[selectedSize];
+                          const sPrice = selectedSizeObj?.discountedPrice || selectedSizeObj?.originalPrice || 0;
+                          const oPrice = selectedSizeObj?.originalPrice;
+                          if (oPrice && sPrice < oPrice) {
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span className="line-through text-gray-500 text-base">EGP{oPrice}</span>
+                                <span className="text-orange-400">EGP{sPrice}</span>
+                              </div>
+                            )
+                          }
+                          return <span>EGP{sPrice}</span>
+                        })()}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => {
+                          dispatch({
+                            type: "ADD_ITEM",
+                            payload: {
+                              id: `${product.id}-${product.sizes[selectedSize].size}`,
+                              productId: product.id,
+                              name: product.name,
+                              price: getSelectedPrice(),
+                              size: product.sizes[selectedSize].size,
+                              volume: product.sizes[selectedSize].volume,
+                              image: product.images[0],
+                              category: category,
+                              quantity: quantity
+                            },
+                          })
+                        }}
+                        className="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg py-5"
+                        aria-label="Add to cart"
+                      >
+                        <ShoppingCart className="mr-2 h-5 w-5" />
+                        Add to Cart
+                      </Button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          if (isFavorite(product.id)) {
+                            removeFromFavorites(product.id)
+                          } else {
+                            addToFavorites({
+                              id: product.id,
+                              name: product.name,
+                              price: getSelectedPrice(),
+                              image: product.images[0],
+                              category: product.category,
+                              rating: product.rating,
+                              isNew: product.isNew,
+                              isBestseller: product.isBestseller,
+                              sizes: product.sizes,
+                            })
+                          }
+                        }}
+                        className="w-12 flex-shrink-0 border border-white/10 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+                        aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Heart className={`h-5 w-5 ${isFavorite(product.id) ? "text-red-500 fill-red-500" : "text-gray-300"}`} />
+                      </motion.button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Trust badges */}
+              <div className="hidden md:grid grid-cols-3 gap-3">
+                <div className="flex flex-col items-center text-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-4">
+                  <Truck className="h-5 w-5 text-orange-400" />
+                  <span className="text-xs text-gray-300">Fast Delivery</span>
+                </div>
+                <div className="flex flex-col items-center text-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-4">
+                  <Shield className="h-5 w-5 text-orange-400" />
+                  <span className="text-xs text-gray-300">Quality Guarantee</span>
+                </div>
+                <div className="flex flex-col items-center text-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-4">
+                  <RotateCcw className="h-5 w-5 text-orange-400" />
+                  <span className="text-xs text-gray-300">Easy Returns</span>
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Fixed Bottom Bar - Mobile Optimized */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-40">
+      {/* Fixed Bottom Bar - Mobile Only (desktop uses the inline Buy Box above) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-xl shadow-lg border-t border-white/10 z-40">
         <div className="container mx-auto px-3 md:px-6 py-2 md:py-4">
             {product.isGiftPackage ? (
             /* Gift Package Bottom Bar - Mobile Optimized */
             <div className="flex items-center justify-between gap-2 md:gap-4">
               <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
-                <Package className="h-4 w-4 md:h-6 md:w-6 text-gray-600 flex-shrink-0" />
+                <Package className="h-4 w-4 md:h-6 md:w-6 text-orange-400 flex-shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-xs md:text-sm font-medium text-gray-900 truncate">Gift Package</h3>
-                  <p className="text-xs text-gray-600 hidden md:block">Customize your package</p>
+                  <h3 className="text-xs md:text-sm font-medium text-white truncate">Gift Package</h3>
+                  <p className="text-xs text-gray-400 hidden md:block">Customize your package</p>
                   </div>
                 </div>
-                
+
               <div className="flex items-center space-x-2 md:space-x-4">
                 <div className="text-right">
                     {(() => {
                       const packagePrice = product.packagePrice || 0;
                       const packageOriginalPrice = product.packageOriginalPrice || 0;
-                      
+
                       if (packageOriginalPrice > 0 && packagePrice < packageOriginalPrice) {
                         return (
                         <div className="flex flex-col md:flex-row md:items-center md:space-x-2">
-                          <span className="line-through text-gray-400 text-xs md:text-base">EGP{packageOriginalPrice}</span>
-                          <span className="text-red-600 font-bold text-sm md:text-xl">EGP{packagePrice}</span>
+                          <span className="line-through text-gray-500 text-xs md:text-base">EGP{packageOriginalPrice}</span>
+                          <span className="text-orange-400 font-bold text-sm md:text-xl">EGP{packagePrice}</span>
                           </div>
                         );
                       } else {
-                      return <span className="text-green-600 font-bold text-sm md:text-xl">EGP{packagePrice}</span>;
+                      return <span className="text-orange-400 font-bold text-sm md:text-xl">EGP{packagePrice}</span>;
                       }
                     })()}
                   </div>
-                
+
                 <div className="flex space-x-1 md:space-x-2">
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
-                    className="p-2 md:p-3 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-center"
+                    className="p-2 md:p-3 border border-white/10 rounded-lg hover:bg-white/10 flex items-center justify-center"
                       onClick={() => {
                         if (product) {
                           if (isFavorite(product.id)) {
@@ -660,18 +792,18 @@ export default function ProductDetailPage() {
                       }}
                       aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
                     >
-                      <Heart 
+                      <Heart
                       className={`h-4 w-4 md:h-5 md:w-5 ${
-                          product && isFavorite(product.id) 
-                            ? "text-red-500 fill-red-500" 
-                            : "text-gray-700"
-                        }`} 
+                          product && isFavorite(product.id)
+                            ? "text-red-500 fill-red-500"
+                            : "text-gray-300"
+                        }`}
                       />
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
-                    className="bg-gradient-to-r from-gray-900 to-black text-white py-2 px-3 md:py-3 md:px-6 rounded-lg font-medium flex items-center justify-center shadow-md hover:shadow-lg transition-all text-xs md:text-sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-3 md:py-3 md:px-6 rounded-lg font-medium flex items-center justify-center shadow-md hover:shadow-lg transition-all text-xs md:text-sm"
                       onClick={() => setShowGiftPackageSelector(true)}
                       aria-label="Customize Package"
                     >
@@ -688,7 +820,7 @@ export default function ProductDetailPage() {
               {/* Mobile: Compact single row layout */}
               <div className="flex md:hidden items-center justify-between gap-2">
                 <div className="flex items-center space-x-2 min-w-0 flex-1">
-                  <span className="text-xs font-medium text-gray-600 whitespace-nowrap">Size:</span>
+                  <span className="text-xs font-medium text-gray-400 whitespace-nowrap">Size:</span>
                   <div className="flex space-x-1 overflow-x-auto scrollbar-hide min-w-0">
                     {product.sizes.map((size, index) => (
                       <motion.button
@@ -698,8 +830,8 @@ export default function ProductDetailPage() {
                         onClick={() => setSelectedSize(index)}
                         className={`px-2 py-1 border rounded text-xs transition-all flex-shrink-0 ${
                           selectedSize === index
-                            ? 'border-black bg-black text-white'
-                            : 'border-gray-200 hover:border-gray-400 bg-white'
+                            ? 'border-orange-500 bg-orange-500 text-white'
+                            : 'border-white/10 hover:border-white/30 bg-white/5 text-gray-200'
                         }`}
                       >
                         {`${size.size} (${size.volume})`}
@@ -707,55 +839,55 @@ export default function ProductDetailPage() {
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-1">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-6 h-6 border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50 transition-colors"
+                    className="w-6 h-6 border border-white/10 rounded flex items-center justify-center hover:bg-white/10 transition-colors"
                     disabled={quantity <= 1}
                   >
-                    <span className="text-gray-600 text-xs">-</span>
+                    <span className="text-gray-300 text-xs">-</span>
                   </motion.button>
-                  <span className="w-8 text-center font-medium text-xs">{quantity}</span>
+                  <span className="w-8 text-center font-medium text-xs text-white">{quantity}</span>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-6 h-6 border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50 transition-colors"
+                    className="w-6 h-6 border border-white/10 rounded flex items-center justify-center hover:bg-white/10 transition-colors"
                   >
-                    <span className="text-gray-600 text-xs">+</span>
+                    <span className="text-gray-300 text-xs">+</span>
                   </motion.button>
                 </div>
               </div>
 
               {/* Mobile: Price and action buttons row */}
               <div className="flex md:hidden items-center justify-between gap-2">
-                <div className="text-sm font-medium">
+                <div className="text-sm font-medium text-white">
                   {(() => {
                     const selectedSizeObj = product.sizes[selectedSize];
                     const selectedPrice = selectedSizeObj?.discountedPrice || selectedSizeObj?.originalPrice || 0;
                     const originalPrice = selectedSizeObj?.originalPrice;
-                    
+
                     if (originalPrice && selectedPrice < originalPrice) {
                       return (
                         <div className="flex items-center space-x-1">
-                          <span className="line-through text-gray-400 text-xs">EGP{originalPrice}</span>
-                          <span className="text-red-600 font-bold text-sm">EGP{selectedPrice}</span>
+                          <span className="line-through text-gray-500 text-xs">EGP{originalPrice}</span>
+                          <span className="text-orange-400 font-bold text-sm">EGP{selectedPrice}</span>
                         </div>
                       );
                     } else {
-                      return <span className="text-sm">EGP{selectedPrice}</span>;
+                      return <span className="text-sm text-white">EGP{selectedPrice}</span>;
                     }
                   })()}
                 </div>
-                
+
                 <div className="flex space-x-1">
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}
-                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-center"
+                    className="p-2 border border-white/10 rounded-lg hover:bg-white/10 flex items-center justify-center"
                     onClick={() => {
                       if (product) {
                         if (isFavorite(product.id)) {
@@ -777,18 +909,18 @@ export default function ProductDetailPage() {
                     }}
                     aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
                   >
-                    <Heart 
+                    <Heart
                       className={`h-4 w-4 ${
-                        product && isFavorite(product.id) 
-                          ? "text-red-500 fill-red-500" 
-                          : "text-gray-700"
-                      }`} 
+                        product && isFavorite(product.id)
+                          ? "text-red-500 fill-red-500"
+                          : "text-gray-300"
+                      }`}
                     />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}
-                    className="bg-gradient-to-r from-gray-900 to-black text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center shadow-md hover:shadow-lg transition-all text-xs"
+                    className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center shadow-md hover:shadow-lg transition-all text-xs"
                     onClick={() => {
                       dispatch({
                         type: "ADD_ITEM",
@@ -813,221 +945,94 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Desktop: Original layout */}
-              <div className="hidden md:flex md:items-center md:justify-between gap-4">
-            {/* Size Selection */}
-                <div className="w-auto">
-              <h3 className="text-sm font-medium mb-2 text-gray-900">Size: {product.sizes[selectedSize]?.size}</h3>
-              <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
-                {product.sizes.map((size, index) => (
-                  <motion.button
-                    key={index}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedSize(index)}
-                        className={`px-4 py-2 border rounded-lg text-center transition-all flex-shrink-0 text-base ${
-                      selectedSize === index
-                        ? 'border-black bg-black text-white shadow-md'
-                        : 'border-gray-200 hover:border-gray-400 bg-white'
-                    }`}
-                  >
-                    <div className="font-medium">{size.size}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quantity Selection */}
-                <div className="flex items-center space-x-3">
-              <span className="text-sm font-medium text-gray-900">Quantity:</span>
-              <div className="flex items-center space-x-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
-                  disabled={quantity <= 1}
-                >
-                  <span className="text-gray-600">-</span>
-                </motion.button>
-                <span className="w-12 text-center font-medium">{quantity}</span>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
-                >
-                  <span className="text-gray-600">+</span>
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Price and Add to Cart */}
-                <div className="flex items-center justify-end space-x-4 w-auto">
-                  <div className="text-xl font-light text-left">
-                {(() => {
-                  const selectedSizeObj = product.sizes[selectedSize];
-                  const selectedPrice = selectedSizeObj?.discountedPrice || selectedSizeObj?.originalPrice || 0;
-                  const originalPrice = selectedSizeObj?.originalPrice;
-                  
-                  if (originalPrice && selectedPrice < originalPrice) {
-                    return (
-                      <div className="flex items-center space-x-2">
-                            <span className="line-through text-gray-400 text-lg">EGP{originalPrice}</span>
-                            <span className="text-red-600 font-bold text-xl">EGP{selectedPrice}</span>
-                      </div>
-                    );
-                  } else {
-                        return <span className="text-xl">EGP{selectedPrice}</span>;
-                  }
-                })()}
-              </div>
-                  <div className="flex justify-end space-x-2">
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-center"
-                  onClick={() => {
-                    if (product) {
-                      if (isFavorite(product.id)) {
-                        removeFromFavorites(product.id)
-                      } else {
-                        addToFavorites({
-                          id: product.id,
-                          name: product.name,
-                          price: getSelectedPrice(),
-                          image: product.images[0],
-                          category: product.category,
-                          rating: product.rating,
-                          isNew: product.isNew,
-                          isBestseller: product.isBestseller,
-                          sizes: product.sizes,
-                        })
-                      }
-                    }
-                  }}
-                  aria-label={isFavorite(product.id) ? "Remove from favorites" : "Add to favorites"}
-                >
-                  <Heart 
-                    className={`h-5 w-5 ${
-                      product && isFavorite(product.id) 
-                        ? "text-red-500 fill-red-500" 
-                        : "text-gray-700"
-                    }`} 
-                  />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-gradient-to-r from-gray-900 to-black text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center shadow-md hover:shadow-lg transition-all"
-                  onClick={() => {
-                    dispatch({
-                      type: "ADD_ITEM",
-                      payload: {
-                        id: `${product.id}-${product.sizes[selectedSize].size}`,
-                        productId: product.id,
-                        name: product.name,
-                        price: getSelectedPrice(),
-                        size: product.sizes[selectedSize].size,
-                        volume: product.sizes[selectedSize].volume,
-                        image: product.images[0],
-                        category: category,
-                        quantity: quantity
-                      },
-                    })
-                  }}
-                  aria-label="Add to cart"
-                >
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  Add to Cart
-                </motion.button>
-              </div>
-            </div>
-          </div>
             </div>
           )}
         </div>
       </div>
 
               {/* Reviews Section */}
-        <section className="py-12 sm:py-16 bg-gradient-to-b from-white to-gray-50">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-8 sm:mb-12">
-              <motion.h2 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-2xl sm:text-3xl font-light tracking-tight mb-2"
-              >
-                Customer Reviews
-              </motion.h2>
-              <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full"></div>
-            </div>
+        <section className="py-12 sm:py-16 bg-black relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-purple-500/10" />
+          <div className="container mx-auto px-4 md:px-6 relative">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-8 sm:mb-12">
+                <motion.h2 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 tracking-tight"
+                >
+                  Customer <span className="text-orange-500">Reviews</span>
+                </motion.h2>
+                <p className="text-gray-400 text-sm sm:text-base">See what athletes say about this product</p>
+              </div>
 
-            {/* Reviews List */}
-            <div className="space-y-6 sm:space-y-8">
-              {reviews.length === 0 ? (
-                <div className="text-center py-8 sm:py-12 bg-white rounded-xl shadow-sm border border-gray-100">
-                  <div className="bg-gray-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
+              {/* Reviews List */}
+              <div className="space-y-6 sm:space-y-8">
+                {reviews.length === 0 ? (
+                  <div className="text-center py-8 sm:py-12 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
+                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Star className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                    </div>
+                    <p className="text-gray-300 max-w-md mx-auto text-sm sm:text-base">
+                      No reviews yet. Be the first to review this product!
+                    </p>
                   </div>
-                  <p className="text-gray-600 max-w-md mx-auto text-sm sm:text-base">
-                    No reviews yet for this fragrance.
-                  </p>
-                </div>
-              ) : (
-                reviews.map((review, index) => (
-                  <motion.div
-                    key={review._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100"
-                  >
-                    <div className="flex items-start mb-4">
-                      <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0" />
-                      <div className="ml-3 sm:ml-4 flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                          <div>
-                            <h4 className="font-medium text-gray-900 text-sm sm:text-base">{review.userName}</h4>
-                            <p className="text-xs sm:text-sm text-gray-600">{new Date(review.createdAt).toLocaleDateString()}</p>
-                          </div>
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                                  i < review.rating 
-                                    ? "fill-yellow-400 text-yellow-400" 
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
+                ) : (
+                  reviews.map((review, index) => (
+                    <motion.div
+                      key={review._id || review.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/10 hover:border-orange-500/30 transition-all duration-300"
+                    >
+                      <div className="flex items-start mb-4">
+                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center text-white font-bold text-lg sm:text-xl">
+                          {(review.userName || review.customerName || 'A').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                            <div>
+                              <h4 className="font-semibold text-white text-sm sm:text-base">{review.userName || review.customerName}</h4>
+                              <p className="text-xs sm:text-sm text-gray-400">{new Date(review.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                                    i < review.rating 
+                                      ? "fill-orange-500 text-orange-500" 
+                                      : "text-gray-600"
+                                  }`}
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{review.comment}</p>
-                  </motion.div>
-                ))
-              )}
-            </div>
+                      <p className="text-gray-300 leading-relaxed text-sm sm:text-base">{review.comment}</p>
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </section>
 
         {/* Related Products Section */}
-        <section className="py-12 sm:py-16 bg-gray-50 pb-24 sm:pb-28">
-          <div className="container mx-auto px-4 md:px-6">
+        <section className="py-12 sm:py-16 bg-gray-900 pb-24 sm:pb-28 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-purple-500/5" />
+          <div className="container mx-auto px-4 md:px-6 relative">
             <div className="text-center mb-8 sm:mb-12">
               <motion.h2 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-2xl sm:text-3xl font-light tracking-tight mb-2"
+                className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 tracking-tight"
               >
-                You Might Also Like
+                You Might Also <span className="text-orange-500">Like</span>
               </motion.h2>
-              <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full"></div>
+              <p className="text-gray-400 text-sm sm:text-base">Similar products you may be interested in</p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
@@ -1468,9 +1473,9 @@ export default function ProductDetailPage() {
           <div className="container mx-auto px-6">
             <div className="grid md:grid-cols-4 gap-8">
               <div className="space-y-4">
-                <Image src="/logo-white.png" alt="Sense Fragrances" width={150} height={100} className="h-16 w-auto" />
+                <Image src="/mema-sports-logo-white.png" alt="MEMA Sports" width={150} height={100} className="h-16 w-auto" />
                 <p className="text-gray-400 text-sm">
-                  Crafting exceptional fragrances that capture the essence of elegance.
+                  Crafting exceptional sports equipment that elevates athletic performance.
                 </p>
               </div>
 
@@ -1513,11 +1518,11 @@ export default function ProductDetailPage() {
               <div>
                 <h3 className="font-medium mb-4">Contact</h3>
                 <div className="space-y-2 text-sm text-gray-400">
-                  <p>Email: sensefragrances1@gmail.com</p>
+                  <p>Email: contact@memasports.com</p>
                   <p className="mb-3">Follow us for updates</p>
                   <div className="flex space-x-3">
                     <Link
-                      href="https://www.instagram.com/sensefragrances.eg?igsh=MXYxcTh5ZTlhZzMzNQ=="
+                      href="https://www.instagram.com/memasports"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group"
@@ -1537,7 +1542,7 @@ export default function ProductDetailPage() {
                       </div>
                     </Link>
                     <Link
-                      href="https://www.tiktok.com/@sensefragrances.eg?_t=ZS-8zL3M6ji8HZ&_r=1"
+                      href="https://www.tiktok.com/@memasports"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group"
@@ -1554,7 +1559,7 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-              <p>&copy; 2025 Sense Fragrances. All rights reserved.</p>
+              <p>&copy; 2025 MEMA Sports. All rights reserved.</p>
             </div>
           </div>
         </footer>

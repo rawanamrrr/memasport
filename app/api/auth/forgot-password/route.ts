@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
 import jwt from "jsonwebtoken"
 import nodemailer from "nodemailer"
-import type { User } from "@/lib/models/types"
 import { createEmailTemplate, createEmailSection } from "@/lib/email-templates"
 
 export async function POST(request: NextRequest) {
@@ -13,44 +12,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const user = await db.collection<User>("users").findOne({ email })
+    const result = await pool.query("SELECT id, email FROM users WHERE email = $1", [email])
 
-    if (!user) {
+    if (result.rows.length === 0) {
       // Don't reveal if user exists or not for security
       return NextResponse.json({ message: "If an account with that email exists, we've sent a reset link." })
     }
 
+    const user = result.rows[0]
+
     // Generate reset token
-    const resetToken = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET!, { expiresIn: "1h" })
+    const resetToken = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET!, { expiresIn: "1h" })
 
     // Check environment variables
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
       console.error("❌ [EMAIL] Missing email configuration")
-      return NextResponse.json({ 
-        error: "Email configuration missing. Please check EMAIL_USER and EMAIL_PASS environment variables." 
+      return NextResponse.json({
+        error: "Email configuration missing. Please check EMAIL_USER and EMAIL_PASSWORD environment variables."
       }, { status: 500 })
     }
 
     // Create email transporter
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
+      host: process.env.EMAIL_HOST || "smtp.gmail.com",
+      port: Number(process.env.EMAIL_PORT) || 587,
       secure: false,
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, 
+        pass: process.env.EMAIL_PASSWORD,
       },
     })
 
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sensefragrance.com'}/auth/reset-password?token=${resetToken}`
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
 
     // Create email content sections
     const greeting = createEmailSection({
       content: `
         <h2>Reset Your Password</h2>
-        <p>We received a request to reset your password for your Sense Fragrances account. Click the button below to create a new password:</p>
+        <p>We received a request to reset your password for your Mema Sports account. Click the button below to create a new password:</p>
       `
     })
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
             Reset Password
           </a>
         </div>
-        
+
         <div class="email-card" style="background-color: #fef3c7; border-left-color: #f59e0b; margin-top: 20px;">
           <p style="margin: 0;"><strong>Security Notice:</strong></p>
           <p style="margin: 10px 0 0 0;">This link will expire in 1 hour for security reasons. If you didn't request this reset, please ignore this email.</p>
@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
         <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; word-break: break-all; font-family: monospace; font-size: 14px;">
           ${resetUrl}
         </div>
-        
+
         <hr class="divider">
-        
+
         <p style="text-align: center;">
           Still having trouble? <a href="mailto:${process.env.EMAIL_USER}">Contact our support team</a>
         </p>
@@ -91,11 +91,11 @@ export async function POST(request: NextRequest) {
 
     // Send email
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
-      subject: "Reset Your Sense Fragrances Password",
+      subject: "Reset Your Mema Sports Password",
       html: createEmailTemplate({
-        title: "Reset Your Password - Sense Fragrances",
+        title: "Reset Your Password - Mema Sports",
         preheader: "Reset your password to regain access to your account",
         content: emailContent,
         theme: { mode: 'light' }

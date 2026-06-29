@@ -1,7 +1,5 @@
-import type { ObjectId } from "mongodb"
-
 export interface User {
-  _id?: ObjectId
+  _id?: string
   email: string
   password: string
   name: string
@@ -12,7 +10,7 @@ export interface User {
 }
 
 export interface Product {
-  _id?: ObjectId
+  _id?: string
   id: string
   name: string
   description: string
@@ -49,7 +47,7 @@ export interface OrderItem {
 }
 
 export interface Order {
-  _id?: ObjectId
+  _id?: string
   id: string
   userId: string
   items: OrderItem[]

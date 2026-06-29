@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import nodemailer from "nodemailer"
+import pool from "@/lib/postgresql"
 import { createEmailTemplate, createEmailSection } from "@/lib/email-templates"
 
 export async function POST(request: NextRequest) {
@@ -10,22 +11,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 })
     }
 
-    // Check environment variables
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error("❌ [EMAIL] Missing email configuration")
-      return NextResponse.json({ 
-        error: "Email configuration missing. Please check EMAIL_USER and EMAIL_PASS environment variables." 
-      }, { status: 500 })
+    // Persist the message so the admin can read it in the dashboard, even if
+    // email delivery is unavailable.
+    try {
+      await pool.query(
+        `INSERT INTO contact_messages (name, email, subject, message) VALUES ($1, $2, $3, $4)`,
+        [name, email, subject, message]
+      )
+    } catch (dbError) {
+      console.error("❌ [Contact] Failed to store message:", dbError)
+    }
+
+    const emailPassword = process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS
+
+    // If email isn't configured, the message is still saved to the dashboard.
+    if (!process.env.EMAIL_USER || !emailPassword) {
+      console.warn("⚠️ [EMAIL] Email not configured; message saved to dashboard only")
+      return NextResponse.json({ success: true, message: "Message received successfully" })
     }
 
     // Create transporter
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
+      host: process.env.EMAIL_HOST || "smtp.gmail.com",
+      port: Number(process.env.EMAIL_PORT) || 587,
       secure: false, // STARTTLS (not SSL)
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        pass: emailPassword,
       },
     })
 

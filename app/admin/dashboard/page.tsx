@@ -30,6 +30,11 @@ import {
   Gift,
   Menu,
   X,
+  Mail,
+  MailOpen,
+  Star,
+  CheckCircle2,
+  Boxes,
 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useAuth } from "@/lib/auth-context"
@@ -116,6 +121,29 @@ interface Offer {
   isActive: boolean
   priority: number
   expiresAt?: string
+  createdAt: string
+}
+
+interface Customer {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  role: string
+  isVerified: boolean
+  createdAt: string
+  orderCount: number
+  totalSpent: number
+  lastOrderAt?: string | null
+}
+
+interface ContactMessage {
+  id: number
+  name: string
+  email: string
+  subject: string
+  message: string
+  isRead: boolean
   createdAt: string
 }
 
@@ -219,6 +247,8 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([])
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([])
   const [offers, setOffers] = useState<Offer[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [messages, setMessages] = useState<ContactMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [refreshing, setRefreshing] = useState(false)
@@ -270,80 +300,85 @@ export default function AdminDashboard() {
     setLoading(true)
     setError("")
 
-    try {
-      const token = getAuthToken();
-
-      if (!token) {
-        throw new Error("No authentication token found")
-      }
-
-      // Fetch products (limit payload for faster dashboard load)
-      const productsResponse = await fetch("/api/products?limit=500", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (!productsResponse.ok) {
-        throw new Error(`Products fetch failed: ${productsResponse.status}`)
-      }
-
-      const productsData = await productsResponse.json()
-      setProducts(productsData)
-
-      // Fetch orders
-      const ordersResponse = await fetch("/api/orders", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (!ordersResponse.ok) {
-        throw new Error(`Orders fetch failed: ${ordersResponse.status}`)
-      }
-
-      const ordersData = await ordersResponse.json()
-      setOrders(ordersData)
-
-      // Fetch discount codes
-      const discountResponse = await fetch("/api/discount-codes", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (discountResponse.ok) {
-        const discountData = await discountResponse.json()
-        setDiscountCodes(discountData)
-      }
-
-      // Fetch offers
-      const offersResponse = await fetch("/api/offers", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (offersResponse.ok) {
-        const offersData = await offersResponse.json()
-        setOffers(offersData)
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error)
-      setError(error instanceof Error ? error.message : "Failed to fetch data")
-      // If there's an auth error, redirect to login
-      if (error instanceof Error && error.message.includes("authentication")) {
-        router.push("/auth/login");
-      }
-    } finally {
+    const token = getAuthToken()
+    if (!token) {
+      setError("No authentication token found")
       setLoading(false)
+      router.push("/auth/login")
+      return
     }
+    const headers = { Authorization: `Bearer ${token}` }
+
+    // Fire EVERY request in parallel up front — no sequential waterfall.
+    const productsP = fetch("/api/products?limit=500", { headers })
+    const ordersP = fetch("/api/orders", { headers })
+    const discountsP = fetch("/api/discount-codes", { headers })
+    const offersP = fetch("/api/offers", { headers })
+    const customersP = fetch("/api/admin/customers", { headers })
+    const messagesP = fetch("/api/admin/messages", { headers })
+
+    // Apply a response to state without letting one failure break the others.
+    const apply = async (p: Promise<Response>, setter: (v: any) => void) => {
+      try {
+        const r = await p
+        if (r.ok) setter(await r.json())
+      } catch (err) {
+        console.error("Dashboard fetch error:", err)
+      }
+    }
+
+    // Unblock the dashboard as soon as the data the first view needs (products
+    // for the default tab + orders for the stat cards) is ready.
+    await Promise.allSettled([apply(productsP, setProducts), apply(ordersP, setOrders)])
+    setLoading(false)
+
+    // Secondary tabs populate in the background without blocking first paint.
+    apply(discountsP, setDiscountCodes)
+    apply(offersP, setOffers)
+    apply(customersP, setCustomers)
+    apply(messagesP, setMessages)
   }
 
   const handleRefresh = async () => {
     setRefreshing(true)
     await fetchData()
     setRefreshing(false)
+  }
+
+  const handleToggleMessageRead = async (msg: ContactMessage) => {
+    const token = getAuthToken()
+    if (!token) return
+    const next = !msg.isRead
+    setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, isRead: next } : m)))
+    try {
+      await fetch("/api/admin/messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: msg.id, isRead: next }),
+      })
+    } catch {
+      setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, isRead: msg.isRead } : m)))
+      toast.error("Failed to update message")
+    }
+  }
+
+  const handleDeleteMessage = async (id: number) => {
+    if (!confirm("Delete this message?")) return
+    const token = getAuthToken()
+    if (!token) return
+    const prev = messages
+    setMessages((p) => p.filter((m) => m.id !== id))
+    try {
+      const res = await fetch(`/api/admin/messages?id=${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Message deleted")
+    } catch {
+      setMessages(prev)
+      toast.error("Failed to delete message")
+    }
   }
 
   const handleStatusUpdate = async (orderId: string, status: string) => {
@@ -759,6 +794,49 @@ export default function AdminDashboard() {
   const totalProducts = products.length
   const activeProducts = products.filter((p) => p.isActive).length
 
+  // ---- Richer analytics (computed from already-fetched data) ----
+  const nonCancelledOrders = orders.filter((o) => o.status !== "cancelled")
+  const totalItemsSold = nonCancelledOrders.reduce(
+    (sum, o) => sum + o.items.reduce((s, it) => s + it.quantity, 0),
+    0
+  )
+  const unreadMessages = messages.filter((m) => !m.isRead).length
+
+  // Order status breakdown
+  const statusBreakdown = orders.reduce<Record<string, number>>((acc, o) => {
+    acc[o.status] = (acc[o.status] || 0) + 1
+    return acc
+  }, {})
+  const statusOrder = ["pending", "processing", "shipped", "delivered", "cancelled"]
+
+  // Revenue by category
+  const revenueByCategory = nonCancelledOrders.reduce<Record<string, number>>((acc, o) => {
+    o.items.forEach((it: any) => {
+      const cat = it.category || "other"
+      acc[cat] = (acc[cat] || 0) + it.price * it.quantity
+    })
+    return acc
+  }, {})
+
+  // Top products by units sold
+  const productSales = nonCancelledOrders.reduce<Record<string, { name: string; units: number; revenue: number }>>(
+    (acc, o) => {
+      o.items.forEach((it: any) => {
+        const key = it.name
+        if (!acc[key]) acc[key] = { name: it.name, units: 0, revenue: 0 }
+        acc[key].units += it.quantity
+        acc[key].revenue += it.price * it.quantity
+      })
+      return acc
+    },
+    {}
+  )
+  const topProducts = Object.values(productSales)
+    .sort((a, b) => b.units - a.units)
+    .slice(0, 5)
+
+  const maxCategoryRevenue = Math.max(1, ...Object.values(revenueByCategory))
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
@@ -814,7 +892,7 @@ export default function AdminDashboard() {
           )}
 
           {/* Mobile-optimized Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-6 mb-6 sm:mb-8">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -879,12 +957,48 @@ export default function AdminDashboard() {
                 <CardContent className="p-3 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="mb-2 sm:mb-0">
+                      <p className="text-xs sm:text-sm text-gray-600">Customers</p>
+                      <p className="text-lg sm:text-2xl font-light">{customers.length}</p>
+                    </div>
+                    <Users className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 self-end sm:self-auto" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+            >
+              <Card>
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-2 sm:mb-0">
+                      <p className="text-xs sm:text-sm text-gray-600">Items Sold</p>
+                      <p className="text-lg sm:text-2xl font-light">{totalItemsSold}</p>
+                    </div>
+                    <Boxes className="h-6 w-6 sm:h-8 sm:w-8 text-teal-600 self-end sm:self-auto" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+            >
+              <Card>
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-2 sm:mb-0">
                       <p className="text-xs sm:text-sm text-gray-600">Active Products</p>
                       <p className="text-lg sm:text-2xl font-light">
                         {activeProducts}/{totalProducts}
                       </p>
                     </div>
-                    <Users className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 self-end sm:self-auto" />
+                    <Package className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600 self-end sm:self-auto" />
                   </div>
                 </CardContent>
               </Card>
@@ -903,6 +1017,10 @@ export default function AdminDashboard() {
                 <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground min-w-max">
                   <TabsTrigger value="products" className="whitespace-nowrap text-xs sm:text-sm px-3 py-1.5">Products</TabsTrigger>
                   <TabsTrigger value="orders" className="whitespace-nowrap text-xs sm:text-sm px-3 py-1.5">Orders</TabsTrigger>
+                  <TabsTrigger value="customers" className="whitespace-nowrap text-xs sm:text-sm px-3 py-1.5">Customers</TabsTrigger>
+                  <TabsTrigger value="messages" className="whitespace-nowrap text-xs sm:text-sm px-3 py-1.5">
+                    Messages{unreadMessages > 0 ? ` (${unreadMessages})` : ""}
+                  </TabsTrigger>
                   <TabsTrigger value="discounts" className="whitespace-nowrap text-xs sm:text-sm px-3 py-1.5">Discounts</TabsTrigger>
                   <TabsTrigger value="offers" className="whitespace-nowrap text-xs sm:text-sm px-3 py-1.5">Offers</TabsTrigger>
                   <TabsTrigger value="analytics" className="whitespace-nowrap text-xs sm:text-sm px-3 py-1.5">Analytics</TabsTrigger>
@@ -1323,6 +1441,120 @@ export default function AdminDashboard() {
                           )
                         })}
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Customers Tab */}
+              <TabsContent value="customers">
+                <Card>
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Users className="h-5 w-5" /> Customers ({customers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6">
+                    {customers.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8 text-sm">No customers yet.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-gray-500 border-b">
+                              <th className="py-2 pr-4 font-medium">Name</th>
+                              <th className="py-2 pr-4 font-medium hidden sm:table-cell">Email</th>
+                              <th className="py-2 pr-4 font-medium hidden md:table-cell">Phone</th>
+                              <th className="py-2 pr-4 font-medium text-center">Orders</th>
+                              <th className="py-2 pr-4 font-medium text-right">Spent</th>
+                              <th className="py-2 pr-4 font-medium hidden lg:table-cell">Joined</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {customers.map((c) => (
+                              <tr key={c.id} className="border-b last:border-0 hover:bg-gray-50">
+                                <td className="py-3 pr-4">
+                                  <div className="font-medium flex items-center gap-1.5">
+                                    {c.name}
+                                    {c.role === "admin" && (
+                                      <Badge className="bg-black text-white text-[10px] px-1.5 py-0">admin</Badge>
+                                    )}
+                                    {c.isVerified && <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
+                                  </div>
+                                  <div className="text-xs text-gray-500 sm:hidden">{c.email}</div>
+                                </td>
+                                <td className="py-3 pr-4 hidden sm:table-cell text-gray-600">{c.email}</td>
+                                <td className="py-3 pr-4 hidden md:table-cell text-gray-600">{c.phone || "—"}</td>
+                                <td className="py-3 pr-4 text-center">{c.orderCount}</td>
+                                <td className="py-3 pr-4 text-right font-medium">{c.totalSpent.toFixed(0)} EGP</td>
+                                <td className="py-3 pr-4 hidden lg:table-cell text-gray-500">
+                                  {new Date(c.createdAt).toLocaleDateString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Messages Tab */}
+              <TabsContent value="messages">
+                <Card>
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Mail className="h-5 w-5" /> Contact Messages ({messages.length})
+                      {unreadMessages > 0 && (
+                        <Badge className="bg-orange-500 text-white">{unreadMessages} unread</Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6 space-y-3">
+                    {messages.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8 text-sm">No messages yet.</p>
+                    ) : (
+                      messages.map((m) => (
+                        <div
+                          key={m.id}
+                          className={`rounded-lg border p-4 ${m.isRead ? "bg-white" : "bg-orange-50 border-orange-200"}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium">{m.name}</span>
+                                {!m.isRead && <Badge className="bg-orange-500 text-white text-[10px] px-1.5 py-0">new</Badge>}
+                              </div>
+                              <a href={`mailto:${m.email}`} className="text-xs text-blue-600 hover:underline break-all">
+                                {m.email}
+                              </a>
+                              <p className="mt-1 font-medium text-sm">{m.subject}</p>
+                              <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{m.message}</p>
+                              <p className="mt-2 text-xs text-gray-400">{new Date(m.createdAt).toLocaleString()}</p>
+                            </div>
+                            <div className="flex flex-col gap-2 flex-shrink-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleToggleMessageRead(m)}
+                                title={m.isRead ? "Mark as unread" : "Mark as read"}
+                              >
+                                {m.isRead ? <Mail className="h-4 w-4" /> : <MailOpen className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteMessage(m.id)}
+                                className="text-red-600 hover:bg-red-50"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
                     )}
                   </CardContent>
                 </Card>
@@ -1782,6 +2014,107 @@ export default function AdminDashboard() {
                           <span className="font-medium">{products.filter((p) => p.isBestseller).length}</span>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Order Status Breakdown */}
+                  <Card>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-lg">Order Status Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="space-y-3">
+                        {statusOrder.map((status) => {
+                          const count = statusBreakdown[status] || 0
+                          const pct = orders.length > 0 ? (count / orders.length) * 100 : 0
+                          return (
+                            <div key={status}>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="capitalize">{status}</span>
+                                <span className="font-medium">{count}</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    status === "delivered"
+                                      ? "bg-green-500"
+                                      : status === "shipped"
+                                      ? "bg-blue-500"
+                                      : status === "cancelled"
+                                      ? "bg-red-500"
+                                      : status === "processing"
+                                      ? "bg-purple-500"
+                                      : "bg-orange-500"
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Revenue by Category */}
+                  <Card>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-lg">Revenue by Category</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                      {Object.keys(revenueByCategory).length === 0 ? (
+                        <p className="text-sm text-gray-500">No sales data yet.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {Object.entries(revenueByCategory)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([cat, rev]) => (
+                              <div key={cat}>
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span className="capitalize">{cat}</span>
+                                  <span className="font-medium">{rev.toFixed(0)} EGP</span>
+                                </div>
+                                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600"
+                                    style={{ width: `${(rev / maxCategoryRevenue) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Top Selling Products */}
+                  <Card className="md:col-span-2">
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Star className="h-5 w-5 text-yellow-500" /> Top Selling Products
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                      {topProducts.length === 0 ? (
+                        <p className="text-sm text-gray-500">No sales data yet.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {topProducts.map((p, i) => (
+                            <div key={p.name} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold">
+                                  {i + 1}
+                                </span>
+                                <span className="truncate">{p.name}</span>
+                              </div>
+                              <div className="flex items-center gap-4 flex-shrink-0">
+                                <span className="text-gray-500">{p.units} sold</span>
+                                <span className="font-medium">{p.revenue.toFixed(0)} EGP</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

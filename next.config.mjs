@@ -14,8 +14,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '25mb', // Increase body size limit for server actions
     },
-    // Enable server components
-    serverComponentsExternalPackages: ['mongodb'],
+    // Run instrumentation.ts on server startup (warms DB pool + product cache)
+    instrumentationHook: true,
   },
 
   // Configure images
@@ -67,6 +67,13 @@ const nextConfig = {
         dns: false,
         child_process: false,
       }
+    } else {
+      // The native pg driver relies on Node built-ins (fs/net/tls/pgpass).
+      // Keep it external so it is require()d at runtime instead of bundled,
+      // which lets instrumentation.ts import it without webpack resolution errors.
+      config.externals = Array.isArray(config.externals)
+        ? [...config.externals, 'pg', 'pg-native', 'pgpass']
+        : config.externals
     }
     return config
   },

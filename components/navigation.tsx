@@ -66,6 +66,17 @@ export function Navigation() {
     }
   }, [isOpen, showUserMenu])
 
+  // Lock body scroll while the full-screen mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      const previousOverflow = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = previousOverflow
+      }
+    }
+  }, [isOpen])
+
   const handleLogout = () => {
     logout()
     setShowUserMenu(false)
@@ -148,15 +159,6 @@ export function Navigation() {
       signIn: 'text-white/80 hover:text-white hover:bg-white/10',
       signUp: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700'
     }
-  }
-
-  // Determine mobile menu styling
-  const getMobileMenuStyling = () => {
-    if (isHomePage && !isScrolled) {
-      return 'border-t border-white/10 bg-black/80 backdrop-blur-2xl'
-    }
-
-    return 'border-t border-orange-500/10 bg-black/90 backdrop-blur-2xl'
   }
 
   // Show loading state while auth is initializing
@@ -404,53 +406,80 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Mobile Navigation */}
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`md:hidden mobile-navigation ${getMobileMenuStyling()}`}
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <div className="py-4 space-y-4">
+        </div>
+      </nav>
+
+      {/* Mobile Navigation — full-screen overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mobile-navigation fixed inset-0 z-50 md:hidden"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
+
+            {/* Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-y-0 right-0 flex h-full w-full flex-col overflow-y-auto bg-gradient-to-b from-zinc-950 to-black shadow-2xl"
+            >
+              {/* Header row inside panel */}
+              <div className="flex items-center justify-between px-6 pt-6" style={{ paddingTop: 'calc(1.5rem + var(--offers-banner-height, 0px))' }}>
+                <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
+                  <Image src="/mema-sports-icon-black.png" alt="Mema Sports" width={28} height={28} className="h-9 w-9" />
+                  <span
+                    className="text-lg font-normal tracking-[0.15em] text-orange-500 uppercase"
+                    style={{ fontFamily: 'var(--font-anton), Anton, Impact, "Arial Black", sans-serif' }}
+                  >
+                    MEMA
+                  </span>
+                </Link>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Links */}
+              <div className="flex-1 px-6 py-8">
+                <nav className="flex flex-col">
                   <Link
                     href="/"
-                    className={`relative block px-4 py-3 transition-colors rounded-lg ${getTextColors(isActiveLink("/"))}`}
+                    className={`relative border-b border-white/10 py-4 text-2xl font-bold tracking-tight transition-colors ${isActiveLink("/") ? "text-orange-400" : "text-white hover:text-orange-300"
+                      }`}
                     onClick={() => setIsOpen(false)}
                   >
-                    {isActiveLink("/") && (
-                      <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                        }`} />
-                    )}
-                    <span className="relative z-10">Home</span>
+                    Home
                   </Link>
                   <Link
                     href="/about"
-                    className={`relative block px-4 py-3 transition-colors rounded-lg ${getTextColors(isActiveLink("/about"))}`}
+                    className={`relative border-b border-white/10 py-4 text-2xl font-bold tracking-tight transition-colors ${isActiveLink("/about") ? "text-orange-400" : "text-white hover:text-orange-300"
+                      }`}
                     onClick={() => setIsOpen(false)}
                   >
-                    {isActiveLink("/about") && (
-                      <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                        }`} />
-                    )}
-                    <span className="relative z-10">About</span>
+                    About
                   </Link>
-                  <div className="space-y-2 products-dropdown">
+
+                  <div className="products-dropdown border-b border-white/10">
                     <div className="flex items-center justify-between">
                       <Link
                         href="/products"
-                        className={`relative flex-1 px-4 py-3 transition-colors rounded-lg ${getTextColors(isActiveLink("/products"))}`}
+                        className={`flex-1 py-4 text-2xl font-bold tracking-tight transition-colors ${isActiveLink("/products") ? "text-orange-400" : "text-white hover:text-orange-300"
+                          }`}
                         onClick={() => setIsOpen(false)}
                       >
-                        {isActiveLink("/products") && (
-                          <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                            }`} />
-                        )}
-                        <span className="relative z-10">All Products</span>
+                        Products
                       </Link>
                       <button
                         onClick={(e) => {
@@ -458,122 +487,81 @@ export function Navigation() {
                           e.stopPropagation()
                           setProductsOpen(!productsOpen)
                         }}
-                        className={`p-2 transition-colors ${!isHomePage || isScrolled ? 'text-white/70 hover:text-white' : 'text-white/60 hover:text-white'
-                          }`}
+                        className="p-2 text-white/60 transition-colors hover:text-white"
                       >
-                        <ChevronDown className={`h-4 w-4 transition-transform ${productsOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`h-6 w-6 transition-transform ${productsOpen ? "rotate-180" : ""}`} />
                       </button>
                     </div>
 
-                    {/* Product Collections - Collapsible */}
                     <AnimatePresence>
                       {productsOpen && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="ml-4 space-y-1 overflow-hidden"
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden pb-3"
                         >
                           {productLinks.map((item) => (
                             <Link
                               key={item.href}
                               href={item.href}
-                              className={`relative block rounded-lg px-4 py-2 text-sm transition-colors ${!isHomePage || isScrolled
-                                  ? `text-white/75 hover:text-white ${isActiveLink(item.href) ? "text-orange-400" : ""}`
-                                  : `text-white/70 hover:text-white ${isActiveLink(item.href) ? "text-white" : ""}`
+                              className={`block py-2.5 pl-2 text-base font-medium transition-colors ${isActiveLink(item.href) ? "text-orange-400" : "text-white/70 hover:text-white"
                                 }`}
                               onClick={() => setIsOpen(false)}
                             >
-                              {isActiveLink(item.href) && (
-                                <div className={`absolute inset-0 rounded-lg ${!isHomePage || isScrolled ? 'bg-orange-500/10' : 'bg-white/20'
-                                  }`} />
-                              )}
-                              <span className="relative z-10">{item.label}</span>
+                              {item.label}
                             </Link>
                           ))}
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
+
                   <Link
                     href="/contact"
-                    className={`relative block px-4 py-3 transition-colors rounded-lg ${getTextColors(isActiveLink("/contact"))}`}
+                    className={`relative border-b border-white/10 py-4 text-2xl font-bold tracking-tight transition-colors ${isActiveLink("/contact") ? "text-orange-400" : "text-white hover:text-orange-300"
+                      }`}
                     onClick={() => setIsOpen(false)}
                   >
-                    {isActiveLink("/contact") && (
-                      <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                        }`} />
-                    )}
-                    <span className="relative z-10">Contact</span>
+                    Contact
                   </Link>
+                </nav>
 
-
-
+                {/* Auth section */}
+                <div className="mt-8">
                   {!authState.isAuthenticated ? (
-                    <div className={`flex flex-col space-y-2 pt-4 ${!isHomePage || isScrolled ? 'border-t border-gray-200' : 'border-t border-white/20'
-                      }`}>
-                      <Link
-                        href="/auth/login"
-                        onClick={() => setIsOpen(false)}
-                        className={`relative block ${isActiveLink("/auth/login") ? "opacity-100" : ""
-                          }`}
-                      >
-                        {isActiveLink("/auth/login") && (
-                          <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                            }`} />
-                        )}
-                        <Button
-                          variant="ghost"
-                          className={`w-full justify-start relative z-10 transition-all ${buttonStyling.signIn}`}
-                        >
+                    <div className="flex flex-col gap-3">
+                      <Link href="/auth/login" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full justify-center border-white/20 bg-white/5 text-white hover:bg-white/10">
                           Sign In
                         </Button>
                       </Link>
-                      <Link
-                        href="/auth/register"
-                        onClick={() => setIsOpen(false)}
-                        className={`relative block ${isActiveLink("/auth/register") ? "opacity-100" : ""
-                          }`}
-                      >
-                        {isActiveLink("/auth/register") && (
-                          <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                            }`} />
-                        )}
-                        <Button className={`w-full relative z-10 transition-all ${buttonStyling.signUp}`}>
+                      <Link href="/auth/register" onClick={() => setIsOpen(false)}>
+                        <Button className="w-full justify-center bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700">
                           Sign Up
                         </Button>
                       </Link>
                     </div>
                   ) : (
-                    <div className={`pt-4 space-y-2 ${!isHomePage || isScrolled ? 'border-t border-gray-200' : 'border-t border-white/20'
-                      }`}>
-                      <p className={`text-sm font-medium ${!isHomePage || isScrolled ? 'text-gray-900' : 'text-white'
-                        }`}>{authState.user?.name}</p>
+                    <div className="space-y-1">
+                      <p className="mb-3 text-sm font-medium text-white/60">{authState.user?.name}</p>
                       {authState.user?.role !== "admin" && (
                         <Link
                           href="/account"
-                          className={`relative block px-4 py-3 transition-colors rounded-lg ${getTextColors(isActiveLink("/account"))}`}
+                          className="block py-2 text-base font-medium text-white/85 transition-colors hover:text-orange-300"
                           onClick={() => setIsOpen(false)}
                         >
-                          {isActiveLink("/account") && (
-                            <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                              }`} />
-                          )}
-                          <span className="relative z-10">My Account</span>
+                          My Account
                         </Link>
                       )}
                       {authState.user?.role === "admin" && (
                         <Link
                           href="/admin/dashboard"
-                          className={`relative block px-4 py-3 transition-colors rounded-lg ${getTextColors(isActiveLink("/admin/dashboard"))}`}
+                          className="block py-2 text-base font-medium text-white/85 transition-colors hover:text-orange-300"
                           onClick={() => setIsOpen(false)}
                         >
-                          {isActiveLink("/admin/dashboard") && (
-                            <div className={`absolute inset-0 rounded-xl ${!isHomePage || isScrolled ? 'bg-black/3' : 'bg-white/20'
-                              }`} />
-                          )}
-                          <span className="relative z-10">Admin Dashboard</span>
+                          Admin Dashboard
                         </Link>
                       )}
                       <button
@@ -581,19 +569,18 @@ export function Navigation() {
                           handleLogout()
                           setIsOpen(false)
                         }}
-                        className={`block w-full text-left transition-colors ${!isHomePage || isScrolled ? 'text-red-600 hover:text-red-700' : 'text-red-400 hover:text-red-300'
-                          }`}
+                        className="block w-full py-2 text-left text-base font-medium text-red-400 transition-colors hover:text-red-300"
                       >
                         Sign Out
                       </button>
                     </div>
                   )}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </nav>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

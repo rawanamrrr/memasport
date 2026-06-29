@@ -1,13 +1,30 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import jwt from "jsonwebtoken"
 import pool from "@/lib/postgresql"
+import { invalidatePrefix, PRODUCTS_CACHE_PREFIX } from "@/lib/cache"
+import { getProducts } from "@/lib/products-service"
+
+// Clear both the in-memory product cache and the ISR page cache so storefront
+// pages reflect catalog changes immediately.
+function revalidateStorefront() {
+  invalidatePrefix(PRODUCTS_CACHE_PREFIX)
+  try {
+    revalidatePath("/")
+    revalidatePath("/products")
+    revalidatePath("/products/[category]", "page")
+    revalidatePath("/products/[category]/[product]", "page")
+  } catch (e) {
+    console.error("revalidatePath failed:", e)
+  }
+}
 
 // Helper function for error responses
 const errorResponse = (message: string, status: number) => {
   return NextResponse.json(
-    { 
-      error: message, 
-      timestamp: new Date().toISOString() 
+    {
+      error: message,
+      timestamp: new Date().toISOString()
     },
     { status }
   )
@@ -15,210 +32,16 @@ const errorResponse = (message: string, status: number) => {
 
 // Configure the API route
 export const maxDuration = 60
-export const dynamic = 'force-dynamic'
-export const fetchCache = 'force-no-store'
 export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
-  console.log("🔍 [API] GET /api/products - Request received")
 
   try {
     const { searchParams } = new URL(request.url)
-    
-    const id = searchParams.get("id")
-    const category = searchParams.get("category")
-    const isBestsellerParam = searchParams.get("isBestseller")
-    const isNewParam = searchParams.get("isNew")
-    const isGiftPackageParam = searchParams.get("isGiftPackage")
-    const hasPagination = searchParams.has("page") || searchParams.has("limit")
-    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1)
-    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20", 10), 1), 1000)
-    const offset = (page - 1) * limit
-
-    // Single product request
-    if (id) {
-      const result = await pool.query(`
-        SELECT p.*, 
-               COALESCE(
-                 json_agg(
-                   json_build_object(
-                     'size', ps.size,
-                     'volume', ps.volume,
-                     'originalPrice', ps.original_price,
-                     'discountedPrice', ps.discounted_price
-                   )
-                 ) FILTER (WHERE ps.id IS NOT NULL),
-                 '[]'::json
-               ) as sizes
-        FROM products p
-        LEFT JOIN product_sizes ps ON p.id = ps.product_id
-        WHERE p.id = $1
-        GROUP BY p.id
-      `, [id])
-
-      if (result.rows.length === 0) {
-        return errorResponse("Product not found", 404)
-      }
-
-      const product = {
-        ...result.rows[0],
-        isActive: result.rows[0].is_active,
-        isNew: result.rows[0].is_new,
-        isBestseller: result.rows[0].is_bestseller,
-        isGiftPackage: result.rows[0].is_gift_package,
-        packagePrice: result.rows[0].package_price ? parseFloat(result.rows[0].package_price) : null,
-        packageOriginalPrice: result.rows[0].package_original_price ? parseFloat(result.rows[0].package_original_price) : null,
-        rating: parseFloat(result.rows[0].rating) || 0,
-        reviews: parseInt(result.rows[0].reviews) || 0,
-        longDescription: result.rows[0].long_description,
-        createdAt: result.rows[0].created_at,
-        updatedAt: result.rows[0].updated_at,
-      }
-
-      return NextResponse.json(product, {
-        headers: {
-          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-        }
-      })
-    }
-
-    // Build query for listing
-    let queryText = `
-      SELECT p.id, p.name, p.description, p.images, p.rating, p.reviews, p.category,
-             p.is_active, p.is_new, p.is_bestseller, p.is_gift_package,
-             p.package_price, p.package_original_price, p.created_at,
-             COALESCE(
-               json_agg(
-                 json_build_object(
-                   'size', ps.size,
-                   'volume', ps.volume,
-                   'originalPrice', ps.original_price,
-                   'discountedPrice', ps.discounted_price
-                 )
-               ) FILTER (WHERE ps.id IS NOT NULL),
-               '[]'::json
-             ) as sizes
-      FROM products p
-      LEFT JOIN product_sizes ps ON p.id = ps.product_id
-      WHERE p.is_active = true
-    `
-    
-    const queryParams: any[] = []
-    let paramIndex = 1
-
-    if (category) {
-      queryText += ` AND p.category = $${paramIndex}`
-      queryParams.push(category)
-      paramIndex++
-    }
-
-    if (isBestsellerParam !== null) {
-      queryText += ` AND p.is_bestseller = $${paramIndex}`
-      queryParams.push(isBestsellerParam === 'true')
-      paramIndex++
-    }
-
-    if (isNewParam !== null) {
-      queryText += ` AND p.is_new = $${paramIndex}`
-      queryParams.push(isNewParam === 'true')
-      paramIndex++
-    }
-
-    if (isGiftPackageParam !== null) {
-      queryText += ` AND p.is_gift_package = $${paramIndex}`
-      queryParams.push(isGiftPackageParam === 'true')
-      paramIndex++
-    }
-
-    queryText += ` GROUP BY p.id ORDER BY p.created_at DESC`
-
-    if (hasPagination) {
-      queryText += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
-      queryParams.push(limit, offset)
-
-      // Get total count
-      let countQuery = `SELECT COUNT(*) FROM products WHERE is_active = true`
-      const countParams: any[] = []
-      let countParamIndex = 1
-
-      if (category) {
-        countQuery += ` AND category = $${countParamIndex}`
-        countParams.push(category)
-        countParamIndex++
-      }
-      if (isBestsellerParam !== null) {
-        countQuery += ` AND is_bestseller = $${countParamIndex}`
-        countParams.push(isBestsellerParam === 'true')
-        countParamIndex++
-      }
-      if (isNewParam !== null) {
-        countQuery += ` AND is_new = $${countParamIndex}`
-        countParams.push(isNewParam === 'true')
-        countParamIndex++
-      }
-      if (isGiftPackageParam !== null) {
-        countQuery += ` AND is_gift_package = $${countParamIndex}`
-        countParams.push(isGiftPackageParam === 'true')
-      }
-
-      const [productsResult, countResult] = await Promise.all([
-        pool.query(queryText, queryParams),
-        pool.query(countQuery, countParams)
-      ])
-
-      const products = productsResult.rows.map(row => ({
-        ...row,
-        isActive: row.is_active,
-        isNew: row.is_new,
-        isBestseller: row.is_bestseller,
-        isGiftPackage: row.is_gift_package,
-        packagePrice: row.package_price ? parseFloat(row.package_price) : null,
-        packageOriginalPrice: row.package_original_price ? parseFloat(row.package_original_price) : null,
-        rating: parseFloat(row.rating) || 0,
-        reviews: parseInt(row.reviews) || 0,
-        createdAt: row.created_at,
-      }))
-
-      const total = parseInt(countResult.rows[0].count)
-      const totalPages = Math.max(Math.ceil(total / limit), 1)
-
-      console.log(`⏱️ [API] Request completed in ${Date.now() - startTime}ms (page=${page}, limit=${limit}, total=${total})`)
-      
-      return NextResponse.json(products, {
-        headers: {
-          "X-Total-Count": String(total),
-          "X-Page": String(page),
-          "X-Limit": String(limit),
-          "X-Total-Pages": String(totalPages),
-          "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
-        }
-      })
-    } else {
-      const result = await pool.query(queryText, queryParams)
-      
-      const products = result.rows.map(row => ({
-        ...row,
-        isActive: row.is_active,
-        isNew: row.is_new,
-        isBestseller: row.is_bestseller,
-        isGiftPackage: row.is_gift_package,
-        packagePrice: row.package_price ? parseFloat(row.package_price) : null,
-        packageOriginalPrice: row.package_original_price ? parseFloat(row.package_original_price) : null,
-        rating: parseFloat(row.rating) || 0,
-        reviews: parseInt(row.reviews) || 0,
-        createdAt: row.created_at,
-      }))
-
-      console.log(`⏱️ [API] Request completed in ${Date.now() - startTime}ms (all=${products.length})`)
-      
-      return NextResponse.json(products, {
-        headers: {
-          "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
-        }
-      })
-    }
-
+    const { status, body, headers } = await getProducts(searchParams)
+    console.log(`⏱️ [API] GET /api/products completed in ${Date.now() - startTime}ms (${headers["X-Cache"] || "n/a"})`)
+    return NextResponse.json(body, { status, headers })
   } catch (error) {
     console.error("❌ [API] Error in GET /api/products:", error)
     return errorResponse(
@@ -289,6 +112,7 @@ export async function POST(request: NextRequest) {
       }
 
       await client.query('COMMIT')
+      revalidateStorefront()
 
       return NextResponse.json({
         success: true,
@@ -382,6 +206,7 @@ export async function PUT(request: NextRequest) {
       }
 
       await client.query('COMMIT')
+      revalidateStorefront()
 
       return NextResponse.json({
         success: true,
@@ -431,6 +256,7 @@ export async function DELETE(request: NextRequest) {
 
     // Soft delete - just set is_active to false
     await pool.query('UPDATE products SET is_active = false WHERE id = $1', [id])
+    revalidateStorefront()
 
     return NextResponse.json({
       success: true,

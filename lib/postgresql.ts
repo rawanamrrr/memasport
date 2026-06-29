@@ -4,17 +4,36 @@ if (!process.env.DATABASE_URL) {
   throw new Error('Invalid/Missing environment variable: "DATABASE_URL"')
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-})
+declare global {
+  // eslint-disable-next-line no-var
+  var _pgPool: Pool | undefined
+}
 
-// Handle pool errors
-pool.on('error', (err) => {
-  console.error('❌ [PostgreSQL] Unexpected error on idle client', err)
-})
+function createPool() {
+  const p = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    // Supabase's shared transaction pooler caps concurrent backend connections
+    // per project (commonly ~15 on free tier). Keep our client pool comfortably
+    // under that so bursts of parallel requests queue briefly instead of
+    // timing out trying to open more sockets than the pooler will accept.
+    max: 8,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 15000,
+    // Keep sockets warm so we avoid paying connection setup on every request.
+    keepAlive: true,
+  })
+  p.on('error', (err) => {
+    console.error('❌ [PostgreSQL] Unexpected error on idle client', err)
+  })
+  return p
+}
+
+// Reuse a single pool across hot reloads in dev and across warm invocations,
+// instead of opening a fresh connection storm on every reload/request.
+const pool = global._pgPool ?? createPool()
+if (process.env.NODE_ENV !== 'production') {
+  global._pgPool = pool
+}
 
 export default pool
 

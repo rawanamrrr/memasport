@@ -142,15 +142,28 @@ CREATE TABLE IF NOT EXISTS favorites (
 CREATE TABLE IF NOT EXISTS discount_codes (
     id SERIAL PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
-    discount_type VARCHAR(20) NOT NULL, -- 'percentage' or 'fixed'
-    discount_value DECIMAL(10,2) NOT NULL,
-    min_purchase DECIMAL(10,2) DEFAULT 0,
-    max_discount DECIMAL(10,2),
-    usage_limit INTEGER,
-    usage_count INTEGER DEFAULT 0,
+    type VARCHAR(20) NOT NULL, -- 'percentage', 'fixed', or 'buyXgetX'
+    value DECIMAL(10,2) NOT NULL,
+    min_order_amount DECIMAL(10,2) DEFAULT 0,
+    max_uses INTEGER,
+    current_uses INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
-    valid_from TIMESTAMP,
-    valid_until TIMESTAMP,
+    expires_at TIMESTAMP,
+    buy_x INTEGER,
+    get_x INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Offers table (promotional banners shown site-wide)
+CREATE TABLE IF NOT EXISTS offers (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255),
+    description TEXT NOT NULL,
+    discount_code VARCHAR(50),
+    is_active BOOLEAN DEFAULT TRUE,
+    priority INTEGER DEFAULT 0,
+    expires_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -179,6 +192,7 @@ CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
+CREATE INDEX IF NOT EXISTS idx_offers_active_priority ON offers(is_active, priority DESC);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -203,4 +217,7 @@ CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON reviews
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_discount_codes_updated_at BEFORE UPDATE ON discount_codes
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_offers_updated_at BEFORE UPDATE ON offers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

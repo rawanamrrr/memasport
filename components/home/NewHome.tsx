@@ -1,17 +1,169 @@
 "use client"
 
+import type React from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Navigation } from "@/components/navigation"
-import { ArrowRight, Star, Shield, Truck, Zap, Trophy, Target, Instagram, Facebook, Award, ChevronLeft, ChevronRight } from "lucide-react"
-import { useRef, useEffect } from "react"
+import { ArrowRight, Star, Shield, Truck, Zap, Target, Instagram, Facebook, Award, ChevronLeft, ChevronRight, Heart, ShoppingCart, X } from "lucide-react"
+import { useRef, useEffect, useState } from "react"
+import { useCart } from "@/lib/cart-context"
+import { useFavorites } from "@/lib/favorites-context"
 
-export default function NewHome() {
+interface ProductSize {
+  size: string
+  volume?: string
+  originalPrice?: number
+  discountedPrice?: number
+}
+
+interface Product {
+  id: string
+  name: string
+  images: string[]
+  rating: number
+  category: "equipment" | "apparel" | "accessories" | "outlet"
+  isNew?: boolean
+  isBestseller?: boolean
+  sizes: ProductSize[]
+  isGiftPackage?: boolean
+  packagePrice?: number
+  packageOriginalPrice?: number
+}
+
+function getSmallestPrice(sizes: ProductSize[]) {
+  if (!sizes || sizes.length === 0) return 0
+  const prices = sizes.map((s) => s.discountedPrice || s.originalPrice || 0)
+  const valid = prices.filter((p) => p > 0)
+  return valid.length ? Math.min(...valid) : 0
+}
+
+function getSmallestOriginalPrice(sizes: ProductSize[]) {
+  if (!sizes || sizes.length === 0) return 0
+  const prices = sizes.map((s) => s.originalPrice || 0)
+  const valid = prices.filter((p) => p > 0)
+  return valid.length ? Math.min(...valid) : 0
+}
+
+function AnimatedStat({ value }: { value: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [display, setDisplay] = useState(value.replace(/[0-9.]+/, (m) => (m.includes(".") ? "0.0" : "0")))
+  const hasAnimated = useRef(false)
+
+  useEffect(() => {
+    const match = value.match(/[0-9]+\.?[0-9]*/)
+    if (!match || !ref.current) return
+    const target = parseFloat(match[0])
+    const decimals = match[0].includes(".") ? match[0].split(".")[1].length : 0
+    const prefix = value.slice(0, match.index)
+    const suffix = value.slice((match.index ?? 0) + match[0].length)
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true
+          const duration = 1600
+          const start = performance.now()
+
+          const tick = (now: number) => {
+            const elapsed = now - start
+            const progress = Math.min(elapsed / duration, 1)
+            // Rapid ease-out: fast at first, settling at the end
+            const eased = 1 - Math.pow(1 - progress, 3)
+            const current = target * eased
+            setDisplay(`${prefix}${current.toFixed(decimals)}${suffix}`)
+            if (progress < 1) {
+              requestAnimationFrame(tick)
+            } else {
+              setDisplay(value)
+            }
+          }
+          requestAnimationFrame(tick)
+        }
+      },
+      { threshold: 0.4 }
+    )
+
+    observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [value])
+
+  return <div ref={ref}>{display}</div>
+}
+
+export default function NewHome({ initialProducts }: { initialProducts?: Product[] }) {
   const categoriesRef = useRef<HTMLDivElement>(null)
   const testimonialsRef = useRef<HTMLDivElement>(null)
+  const [allProducts, setAllProducts] = useState<Product[]>(initialProducts ?? [])
+  const [productsLoading, setProductsLoading] = useState(!initialProducts)
+  const { dispatch: cartDispatch } = useCart()
+  const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites()
+
+  // Size selector modal state (for "Add to Cart" from the All Products grid)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null)
+  const [quantity, setQuantity] = useState(1)
+  const [showSizeSelector, setShowSizeSelector] = useState(false)
+
+  const openSizeSelector = (product: Product) => {
+    setSelectedProduct(product)
+    setSelectedSize(product.sizes?.length > 0 ? product.sizes[0] : null)
+    setQuantity(1)
+    setShowSizeSelector(true)
+  }
+
+  const closeSizeSelector = () => {
+    setShowSizeSelector(false)
+    setTimeout(() => {
+      setSelectedProduct(null)
+      setSelectedSize(null)
+    }, 300)
+  }
+
+  const confirmAddToCart = () => {
+    if (!selectedProduct || !selectedSize) return
+    cartDispatch({
+      type: "ADD_ITEM",
+      payload: {
+        id: `${selectedProduct.id}-${selectedSize.size}`,
+        productId: selectedProduct.id,
+        name: selectedProduct.name,
+        price: selectedSize.discountedPrice || selectedSize.originalPrice || 0,
+        originalPrice: selectedSize.originalPrice,
+        size: selectedSize.size,
+        volume: selectedSize.volume ?? "",
+        image: selectedProduct.images?.[0] || "/placeholder.svg",
+        category: selectedProduct.category,
+        quantity,
+      },
+    })
+    closeSizeSelector()
+  }
+
+  useEffect(() => {
+    // Server already provided the products → no client fetch, render instantly.
+    if (initialProducts) return
+
+    const fetchAllProducts = async () => {
+      try {
+        const response = await fetch("/api/products?limit=8")
+        if (response.ok) {
+          const data = await response.json()
+          setAllProducts(Array.isArray(data) ? data : [])
+        } else {
+          setAllProducts([])
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error)
+        setAllProducts([])
+      } finally {
+        setProductsLoading(false)
+      }
+    }
+    fetchAllProducts()
+  }, [initialProducts])
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // Force video to play on mobile and ensure looping
@@ -184,6 +336,178 @@ export default function NewHome() {
     <div className="min-h-screen bg-black text-white">
       <Navigation />
 
+      {/* Size Selector Modal */}
+      {showSizeSelector && selectedProduct && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={closeSizeSelector}
+        >
+          <motion.div
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="mb-4 flex items-start justify-between">
+                <div>
+                  <h3 className="text-xl font-medium text-black">{selectedProduct.name}</h3>
+                  <p className="text-sm text-gray-600">Select your preferred size</p>
+                </div>
+                <div className="flex">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (isFavorite(selectedProduct.id)) {
+                        removeFromFavorites(selectedProduct.id)
+                      } else {
+                        addToFavorites({
+                          id: selectedProduct.id,
+                          name: selectedProduct.name,
+                          price: selectedSize?.discountedPrice || selectedSize?.originalPrice || getSmallestPrice(selectedProduct.sizes),
+                          image: selectedProduct.images?.[0] || "/placeholder.svg",
+                          category: selectedProduct.category,
+                          rating: selectedProduct.rating,
+                          isNew: selectedProduct.isNew,
+                          isBestseller: selectedProduct.isBestseller,
+                          sizes: selectedProduct.sizes.map((s) => ({ ...s, volume: s.volume ?? "" })),
+                        })
+                      }
+                    }}
+                    className="mr-2 rounded-full bg-white/80 p-1.5 shadow-md backdrop-blur-sm transition-colors hover:bg-gray-100"
+                    aria-label={isFavorite(selectedProduct.id) ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Heart
+                      className={`h-5 w-5 ${isFavorite(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-700"}`}
+                    />
+                  </button>
+                  <button
+                    onClick={closeSizeSelector}
+                    className="text-gray-500 transition-colors hover:text-gray-700"
+                    aria-label="Close size selector"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-6 flex items-center">
+                <div className="relative mr-4 h-20 w-20 flex-shrink-0">
+                  <Image
+                    src={selectedProduct.images?.[0] || "/placeholder.svg"}
+                    alt={selectedProduct.name}
+                    fill
+                    className="rounded-lg object-cover"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${
+                            i < Math.floor(selectedProduct.rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="ml-2 text-xs text-gray-600">({(selectedProduct.rating || 0).toFixed(1)})</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="mb-3 font-medium text-black">Available Sizes</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {selectedProduct.sizes.map((size) => (
+                    <motion.button
+                      key={size.size}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`rounded-xl border-2 p-3 text-center transition-all ${
+                        selectedSize?.size === size.size ? "border-black bg-black text-white shadow-md" : "border-gray-200 hover:border-gray-400 text-black"
+                      }`}
+                      onClick={() => setSelectedSize(size)}
+                      aria-label={`Select size ${size.size}`}
+                    >
+                      <div className="font-medium">{size.size}</div>
+                      <div className="mt-1 text-xs font-medium">
+                        {size.originalPrice && size.discountedPrice && size.discountedPrice < size.originalPrice ? (
+                          <>
+                            <span className="text-gray-400 line-through">EGP{size.originalPrice}</span>
+                            <br />
+                            <span className="text-red-600">EGP{size.discountedPrice}</span>
+                          </>
+                        ) : (
+                          <>EGP{size.discountedPrice || size.originalPrice || 0}</>
+                        )}
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <h4 className="mb-3 font-medium text-black">Quantity</h4>
+                <div className="flex items-center space-x-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50"
+                    disabled={quantity <= 1}
+                  >
+                    -
+                  </motion.button>
+                  <span className="w-12 text-center font-medium text-black">{quantity}</span>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50"
+                  >
+                    +
+                  </motion.button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-gray-100 py-4">
+                <div>
+                  <span className="text-gray-600">Total:</span>
+                  <div className="ml-2 inline text-xl font-medium text-black">
+                    {selectedSize ? (
+                      selectedSize.originalPrice && selectedSize.discountedPrice && selectedSize.discountedPrice < selectedSize.originalPrice ? (
+                        <>
+                          <span className="mr-2 text-lg text-gray-400 line-through">EGP{selectedSize.originalPrice}</span>
+                          <span className="font-bold text-red-600">EGP{selectedSize.discountedPrice}</span>
+                        </>
+                      ) : (
+                        <>EGP{selectedSize.discountedPrice || selectedSize.originalPrice || 0}</>
+                      )
+                    ) : (
+                      <>EGP{getSmallestPrice(selectedProduct.sizes)}</>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={confirmAddToCart}
+                  className="flex items-center rounded-full bg-orange-500 px-6 py-5 hover:bg-orange-600"
+                  disabled={!selectedSize}
+                  aria-label="Add to cart"
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Add to Cart
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Hero Section */}
       <section className="relative min-h-[92svh] flex items-center justify-center overflow-hidden pt-32 pb-16 md:pt-28 md:pb-20" style={{ paddingTop: 'calc(8rem + var(--offers-banner-height, 0px))' }}>
         {/* Video Background */}
@@ -214,15 +538,7 @@ export default function NewHome() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <motion.div
-              className="inline-flex items-center gap-2 rounded-full border border-orange-400/40 bg-black/35 px-4 py-2 text-sm backdrop-blur-md sm:px-5"
-              whileHover={{ scale: 1.05 }}
-            >
-              <Trophy className="w-5 h-5 text-orange-400" />
-              <span className="text-orange-300 font-semibold">Premium Athletic Gear</span>
-            </motion.div>
-
-            <h1 className="mt-7 text-4xl font-black leading-[0.92] tracking-normal sm:text-6xl md:text-7xl lg:text-8xl">
+            <h1 className="text-4xl font-black leading-[0.92] tracking-normal sm:text-6xl md:text-7xl lg:text-8xl">
               <span className="block text-white">ELEVATE</span>
               <span className="block text-white">YOUR</span>
               <span className="block bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
@@ -252,7 +568,9 @@ export default function NewHome() {
             <div className="mx-auto mt-12 grid max-w-2xl grid-cols-3 overflow-hidden rounded-lg border border-white/10 bg-black/35 backdrop-blur-md">
               {stats.map((stat) => (
                 <div key={stat.label} className="border-r border-white/10 px-3 py-4 last:border-r-0 sm:px-6">
-                  <div className="text-2xl font-black text-orange-400 sm:text-3xl">{stat.value}</div>
+                  <div className="text-2xl font-black text-orange-400 sm:text-3xl">
+                    <AnimatedStat value={stat.value} />
+                  </div>
                   <div className="mt-1 text-[11px] font-medium uppercase tracking-wide text-gray-300 sm:text-xs">{stat.label}</div>
                 </div>
               ))}
@@ -263,23 +581,31 @@ export default function NewHome() {
       </section>
 
       {/* Features Section */}
-      <section className="border-y border-white/10 bg-zinc-950 py-14">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="relative overflow-hidden border-y border-white/10 bg-zinc-950 py-14 md:py-16">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-1/2 -z-0 mx-auto h-56 w-[70%] -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.12),transparent_70%)] blur-3xl"
+        />
+        <div className="container relative z-10 mx-auto px-6 md:px-8">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {features.map((feature, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="group rounded-lg border border-white/10 bg-white/[0.03] p-6 text-left transition-colors hover:border-orange-400/40 hover:bg-white/[0.06]"
+                transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                viewport={{ once: true, margin: "-40px" }}
+                whileHover={{ y: -4 }}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-5 text-left shadow-[0_8px_30px_-15px_rgba(0,0,0,0.6)] transition-[border-color,box-shadow] duration-500 hover:border-orange-400/40 hover:shadow-[0_20px_45px_-20px_rgba(249,115,22,0.35)] md:p-6"
               >
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-orange-500/15 text-orange-300 ring-1 ring-orange-400/25">
-                  <feature.icon className="w-6 h-6" />
+                {/* Sheen sweep on hover */}
+                <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+
+                <div className="relative mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-400/5 text-orange-300 ring-1 ring-orange-400/25 transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:ring-orange-400/55 md:mb-5 md:h-12 md:w-12">
+                  <feature.icon className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
-                <h3 className="text-base font-bold text-white">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-gray-400">{feature.desc}</p>
+                <h3 className="text-sm font-bold tracking-tight text-white md:text-base">{feature.title}</h3>
+                <p className="mt-1.5 text-xs leading-5 text-gray-400 md:mt-2 md:text-sm md:leading-6">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -366,6 +692,147 @@ export default function NewHome() {
                 </motion.div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* All Products Section */}
+      <section className="bg-zinc-950 py-20 md:py-24">
+        <div className="container mx-auto px-6 md:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="mx-auto mb-12 max-w-3xl text-center"
+          >
+            <h2 className="text-3xl font-black text-white sm:text-4xl md:text-5xl">
+              All <span className="text-orange-500">Products</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-gray-400 md:text-lg">
+              Browse our full range across every collection
+            </p>
+          </motion.div>
+
+          {productsLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="h-10 w-10 animate-spin rounded-full border-t-2 border-b-2 border-orange-500" />
+            </div>
+          ) : allProducts.length === 0 ? (
+            <div className="py-16 text-center text-gray-400">
+              No products available yet. Check back soon.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {allProducts.map((product, i) => {
+                const smallestPrice = product.isGiftPackage
+                  ? product.packagePrice || 0
+                  : getSmallestPrice(product.sizes)
+                const smallestOriginalPrice = product.isGiftPackage
+                  ? product.packageOriginalPrice || 0
+                  : getSmallestOriginalPrice(product.sizes)
+                const onSale = smallestOriginalPrice > 0 && smallestPrice < smallestOriginalPrice
+                const favorited = isFavorite(product.id)
+
+                const handleToggleFavorite = (e: React.MouseEvent) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (favorited) {
+                    removeFromFavorites(product.id)
+                  } else {
+                    addToFavorites({
+                      id: product.id,
+                      name: product.name,
+                      price: smallestPrice,
+                      image: product.images?.[0] || "/placeholder.svg",
+                      category: product.category,
+                      rating: product.rating,
+                      isNew: product.isNew,
+                      isBestseller: product.isBestseller,
+                      sizes: product.sizes.map((s) => ({ ...s, volume: s.volume ?? "" })),
+                    })
+                  }
+                }
+
+                const handleAddToCart = (e: React.MouseEvent) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  openSizeSelector(product)
+                }
+
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: i * 0.06 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                  >
+                    <Link href={`/products/${product.category}/${product.id}`} className="group block">
+                      <Card className="overflow-hidden rounded-lg border-white/10 bg-black/40 transition-all duration-300 hover:border-orange-500/50">
+                        <div className="relative aspect-square overflow-hidden">
+                          <Image
+                            src={product.images?.[0] || "/placeholder.svg"}
+                            alt={product.name}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                          {(product.isBestseller || product.isNew) && (
+                            <span className="absolute left-2 top-2 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                              {product.isBestseller ? "Bestseller" : "New"}
+                            </span>
+                          )}
+
+                          {/* Favorite button */}
+                          <button
+                            onClick={handleToggleFavorite}
+                            aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+                            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 backdrop-blur-md transition-colors hover:bg-black/75"
+                          >
+                            <Heart className={`h-4 w-4 ${favorited ? "fill-red-500 text-red-500" : "text-white"}`} />
+                          </button>
+
+                        </div>
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="mb-1 flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs text-gray-400">{product.rating?.toFixed(1) ?? "0.0"}</span>
+                          </div>
+                          <h3 className="truncate text-sm font-semibold text-white sm:text-base">{product.name}</h3>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <div className="flex items-baseline gap-2">
+                              {onSale && (
+                                <span className="text-xs text-gray-500 line-through">EGP{smallestOriginalPrice}</span>
+                              )}
+                              <span className={`text-sm font-bold sm:text-base ${onSale ? "text-orange-400" : "text-white"}`}>
+                                EGP{smallestPrice}
+                              </span>
+                            </div>
+                            <button
+                              onClick={handleAddToCart}
+                              aria-label="Add to cart"
+                              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transition-transform duration-300 hover:bg-orange-600 hover:scale-110"
+                            >
+                              <ShoppingCart className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="mt-12 text-center">
+            <Link href="/products">
+              <Button size="lg" className="min-w-52">
+                View All Products
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

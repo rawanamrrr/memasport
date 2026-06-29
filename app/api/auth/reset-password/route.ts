@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import pool from "@/lib/postgresql"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
-import type { User } from "@/lib/models/types"
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,10 +23,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid or expired reset token" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const user = await db.collection<User>("users").findOne({ _id: decoded.userId })
+    const userResult = await pool.query("SELECT id FROM users WHERE id = $1", [decoded.userId])
 
-    if (!user) {
+    if (userResult.rows.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
@@ -35,14 +33,9 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12)
 
     // Update password
-    await db.collection<User>("users").updateOne(
-      { _id: decoded.userId },
-      {
-        $set: {
-          password: hashedPassword,
-          updatedAt: new Date(),
-        },
-      },
+    await pool.query(
+      "UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+      [hashedPassword, decoded.userId]
     )
 
     return NextResponse.json({ message: "Password reset successfully" })

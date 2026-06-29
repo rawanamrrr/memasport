@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
+import pool from '@/lib/postgresql';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -12,45 +12,42 @@ export async function POST(request: NextRequest) {
     }
 
     const oldToken = authHeader.substring(7);
-    
+
     // Verify old token
     const decoded = jwt.verify(oldToken, JWT_SECRET) as { userId: string; email: string };
-    
-    // Connect to MongoDB
-    const client = await MongoClient.connect(process.env.MONGODB_URI!);
-    const db = client.db();
-    const usersCollection = db.collection('users');
 
     // Find user
-    const user = await usersCollection.findOne(
-      { _id: new ObjectId(decoded.userId) },
-      { projection: { password: 0 } } // Exclude password
+    const result = await pool.query(
+      'SELECT id, email, name, role FROM users WHERE id = $1',
+      [decoded.userId]
     );
 
-    if (!user) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const user = result.rows[0];
+
     // Create new token
     const newToken = jwt.sign(
-      { userId: user._id.toString(), email: user.email },
+      { userId: user.id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    return NextResponse.json({ 
-      user: { 
-        id: user._id.toString(), 
-        email: user.email, 
-        name: user.name, 
-        role: user.role 
-      }, 
-      token: newToken 
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      token: newToken
     });
   } catch (error) {
     console.error('Token refresh error:', error);
     return NextResponse.json(
-      { error: 'Invalid token' }, 
+      { error: 'Invalid token' },
       { status: 401 }
     );
   }

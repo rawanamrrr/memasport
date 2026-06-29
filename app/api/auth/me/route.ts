@@ -1,9 +1,7 @@
 // /app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { getDatabase } from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
-import type { User } from "@/lib/models/types";
+import pool from "@/lib/postgresql";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,17 +17,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    const db = await getDatabase();
-    const user = await db.collection<User>("users").findOne({ _id: new ObjectId(decoded.userId) });
+    const result = await pool.query("SELECT id, email, name, role FROM users WHERE id = $1", [decoded.userId]);
 
-    if (!user) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ authenticated: false }, { status: 404 });
     }
+
+    const user = result.rows[0];
 
     return NextResponse.json({
       authenticated: true,
       user: {
-        id: user._id.toString(),
+        id: user.id,
         email: user.email,
         name: user.name,
         role: user.role
