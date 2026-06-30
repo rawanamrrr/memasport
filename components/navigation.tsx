@@ -101,7 +101,7 @@ export function Navigation() {
 
   // Determine logo based on page and scroll position
   const getLogo = () => {
-    return "/mema-sports-icon-black.png"
+    return "/mema-logo.png"
   }
 
   // Determine text colors based on page and scroll position
@@ -435,7 +435,7 @@ export function Navigation() {
               {/* Header row inside panel */}
               <div className="flex items-center justify-between px-6 pt-6" style={{ paddingTop: 'calc(1.5rem + var(--offers-banner-height, 0px))' }}>
                 <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
-                  <Image src="/mema-sports-icon-black.png" alt="Mema Sports" width={28} height={28} className="h-9 w-9" />
+                  <Image src="/mema-logo.png" alt="Mema Sports" width={28} height={28} className="h-9 w-9" />
                   <span
                     className="text-lg font-normal tracking-[0.15em] text-orange-500 uppercase"
                     style={{ fontFamily: 'var(--font-anton), Anton, Impact, "Arial Black", sans-serif' }}

@@ -224,16 +224,16 @@ export default function NewHome({ initialProducts }: { initialProducts?: Product
       const itemWidth = children[0].offsetWidth
       const gap = 24 // gap-6
       const scrollPosition = container.scrollLeft
-      
+
       // Calculate current index based on scroll position
       const currentIndex = Math.round(scrollPosition / (itemWidth + gap))
-      
+
       // Calculate target index
       let targetIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1
-      
+
       // Clamp target index between 0 and children.length - 1
       targetIndex = Math.max(0, Math.min(targetIndex, children.length - 1))
-      
+
       // Scroll the target child into center view
       children[targetIndex].scrollIntoView({
         behavior: 'smooth',
@@ -252,16 +252,16 @@ export default function NewHome({ initialProducts }: { initialProducts?: Product
       const itemWidth = children[0].offsetWidth
       const gap = 24 // gap-6
       const scrollPosition = container.scrollLeft
-      
+
       // Calculate current index based on scroll position
       const currentIndex = Math.round(scrollPosition / (itemWidth + gap))
-      
+
       // Calculate target index
       let targetIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1
-      
+
       // Clamp target index between 0 and children.length - 1
       targetIndex = Math.max(0, Math.min(targetIndex, children.length - 1))
-      
+
       // Scroll the target child into center view
       children[targetIndex].scrollIntoView({
         behavior: 'smooth',
@@ -408,9 +408,8 @@ export default function NewHome({ initialProducts }: { initialProducts?: Product
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(selectedProduct.rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                          }`}
+                          className={`h-4 w-4 ${i < Math.floor(selectedProduct.rating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                            }`}
                         />
                       ))}
                     </div>
@@ -427,9 +426,8 @@ export default function NewHome({ initialProducts }: { initialProducts?: Product
                       key={size.size}
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`rounded-xl border-2 p-3 text-center transition-all ${
-                        selectedSize?.size === size.size ? "border-black bg-black text-white shadow-md" : "border-gray-200 hover:border-gray-400 text-black"
-                      }`}
+                      className={`rounded-xl border-2 p-3 text-center transition-all ${selectedSize?.size === size.size ? "border-black bg-black text-white shadow-md" : "border-gray-200 hover:border-gray-400 text-black"
+                        }`}
                       onClick={() => setSelectedSize(size)}
                       aria-label={`Select size ${size.size}`}
                     >
@@ -652,9 +650,9 @@ export default function NewHome({ initialProducts }: { initialProducts?: Product
             <div
               ref={categoriesRef}
               className="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden scroll-smooth scroll-px-6 touch-pan-x md:gap-6"
-              style={{ 
-                scrollbarWidth: 'none', 
-                msOverflowStyle: 'none', 
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-x'
               }}
@@ -916,9 +914,9 @@ export default function NewHome({ initialProducts }: { initialProducts?: Product
             <div
               ref={testimonialsRef}
               className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth touch-pan-x snap-x snap-mandatory scroll-px-6"
-              style={{ 
-                scrollbarWidth: 'none', 
-                msOverflowStyle: 'none', 
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
                 WebkitOverflowScrolling: 'touch',
                 touchAction: 'pan-x'
               }}
@@ -983,7 +981,7 @@ export default function NewHome({ initialProducts }: { initialProducts?: Product
             {/* Brand */}
             <div className="space-y-4">
               <Image
-                src="/mema-sports-icon-white.png"
+                src="/mema-logo.png"
                 alt="Mema Sports"
                 width={150}
                 height={60}
